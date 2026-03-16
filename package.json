@@ -1,0 +1,21 @@
+{
+  "name": "gif-editor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "coi-serviceworker": "^0.1.7",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.2.0"
+  }
+}
