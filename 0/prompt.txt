@@ -1,0 +1,4 @@
+<bash-stdout>On branch batch-slack-export
+Your branch is up to date with 'origin/batch-slack-export'.
+
+nothing to commit, working tree clean</bash-stdout><bash-stderr></bash-stderr>
