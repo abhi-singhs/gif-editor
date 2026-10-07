@@ -1,106 +1,165 @@
-import { getState, pushOperation, setState, setPreviewFromGif } from '../utils/state.js';
-import { writeFile, readFile, runFFmpeg, deleteFile, initFFmpeg } from '../ffmpeg/engine.js';
+import { getState, subscribe, commit } from '../utils/state.js';
+import { writeFile, readFile, runFFmpeg, deleteFile } from '../ffmpeg/engine.js';
+import { assembleFramesCmd } from '../ffmpeg/commands.js';
 import { showToast } from '../components/toast.js';
-import { parseGifInfo } from '../utils/gif-info.js';
-import { registerToolRenderer } from '../components/toolbar.js';
-import { showProcessing, hideProcessing } from './shared.js';
+import { registerTool } from '../components/toolbar.js';
+import { runJob } from './shared.js';
 import { extractFrames, renderFrameStrip } from '../components/frame-strip.js';
+import { panelHeader, numberField, button, note } from '../ui/components.js';
+import { icon } from '../ui/icons.js';
 
-registerToolRenderer('frames', renderFrames);
+const tool = {
+  id: 'frames',
+  label: 'Frames',
+  iconName: 'frames',
+  hue: 'violet',
+  hint: 'Delete or reorder single frames.',
+  render: renderFrames,
+  exit: exitFrames,
+};
+registerTool(tool);
 
-let currentFrames = [];
+let frames = [];
+let selected = new Set();
+let focus = 0;
+let originalCount = 0;
+let edited = false;
+let unsubIdle = null;
+
+function frameName(i) {
+  return `frame_${String(i + 1).padStart(4, '0')}.png`;
+}
+
+function releaseFrames() {
+  for (const f of frames) URL.revokeObjectURL(f.url);
+  frames = [];
+  selected = new Set();
+  focus = 0;
+  edited = false;
+}
+
+function exitFrames() {
+  unsubIdle?.();
+  unsubIdle = null;
+  releaseFrames();
+  document.getElementById('frame-strip').classList.add('hidden');
+  document.getElementById('frame-strip-inner').innerHTML = '';
+}
+
+/** Run fn once no FFmpeg job is running (a panel can re-render mid-job) */
+function whenIdle(fn) {
+  if (!getState().processing) { fn(); return; }
+  unsubIdle = subscribe('processing', (busy) => {
+    if (busy) return;
+    unsubIdle();
+    unsubIdle = null;
+    // Defer so the finishing job can tear down its overlay before ours starts
+    setTimeout(fn, 0);
+  });
+}
 
 function renderFrames(panel) {
+  const { meta } = getState();
+  const fps = meta.duration > 0 ? Math.round(meta.frames / (meta.duration / 1000)) : 10;
+
   panel.innerHTML = `
-    <h3 class="font-semibold mb-3">Frame Editing</h3>
-    <div class="space-y-3">
-      <p class="text-sm t-text-secondary">Extract frames, delete or reorder them, then reassemble.</p>
-      <button id="frames-extract" class="w-full px-4 py-2 t-bg-secondary t-bg-hover rounded-lg text-sm font-medium transition-colors">
-        Extract Frames
-      </button>
-      <div>
-        <label for="frames-fps" class="text-xs t-text-secondary block mb-1">Output FPS</label>
-        <input id="frames-fps" type="number" min="1" max="50" value="10"
-          class="w-full px-3 py-1.5 t-input rounded-lg text-sm" />
+    ${panelHeader(tool)}
+    <div class="space-y-4">
+      <div class="flex items-center justify-between p-3 rounded-2xl bg-surface-2 text-sm">
+        <span class="font-bold text-ink-2">Frames</span>
+        <span id="frames-count" class="font-extrabold tabular-nums">Loading…</span>
       </div>
-      <button id="frames-assemble" class="hidden w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white transition-colors">
-        Reassemble GIF
-      </button>
-      <p id="frames-count" class="text-xs t-text-muted"></p>
+      <button id="frames-delete" type="button" class="btn btn-soft btn-block" disabled>${icon('trash')}<span>Delete selected</span></button>
+      ${numberField({ id: 'frames-fps', label: 'Output frame rate', value: Math.min(50, Math.max(1, fps)), min: 1, max: 50, suffix: 'fps' })}
+      ${button({ id: 'frames-assemble', label: 'Save frame changes', iconName: 'check', variant: 'primary', block: true, attrs: 'disabled' })}
+      ${note('Click to select, Shift-click to select a range, and drag to reorder. With the keyboard: arrow keys move between frames, Alt+arrows move a frame, and Delete removes it.')}
     </div>
   `;
 
   document.getElementById('frame-strip').classList.remove('hidden');
+  document.getElementById('frames-delete').addEventListener('click', () => deleteFrames([...selected]));
+  document.getElementById('frames-assemble').addEventListener('click', reassemble);
 
-  document.getElementById('frames-extract').addEventListener('click', async () => {
-    showProcessing('Extracting frames…');
-    try {
-      const { currentGif } = getState();
-      currentFrames = await extractFrames(currentGif);
-      renderFrameStrip(currentFrames, deleteFrame, reorderFrame);
-      document.getElementById('frames-count').textContent = `${currentFrames.length} frames`;
-      document.getElementById('frames-assemble').classList.remove('hidden');
-    } catch (err) {
-      showToast(`Frame extraction failed: ${err.message}`, 'error');
-    } finally {
-      hideProcessing();
+  whenIdle(async () => {
+    if (getState().activeTool !== 'frames') return;
+    const extracted = await runJob('Splitting into frames…', () => extractFrames(getState().currentGif));
+    if (!extracted) return;
+    if (getState().activeTool !== 'frames') {
+      for (const f of extracted) URL.revokeObjectURL(f.url);
+      return;
     }
+    releaseFrames();
+    frames = extracted;
+    originalCount = frames.length;
+    update();
+  });
+}
+
+function update(autoFocus = false) {
+  focus = Math.max(0, Math.min(frames.length - 1, focus));
+  renderFrameStrip({
+    frames,
+    selected,
+    focus,
+    autoFocus,
+    onDelete: deleteFrames,
+    onMove: moveFrame,
+    onSelect: (idx, keyboard) => {
+      focus = idx;
+      update(keyboard);
+    },
   });
 
-  document.getElementById('frames-assemble').addEventListener('click', reassemble);
+  const count = document.getElementById('frames-count');
+  if (!count) return;
+  count.textContent = frames.length === originalCount ? `${frames.length}` : `${originalCount} → ${frames.length}`;
+  const del = document.getElementById('frames-delete');
+  del.disabled = selected.size === 0;
+  del.querySelector('span').textContent = selected.size ? `Delete ${selected.size} selected` : 'Delete selected';
+  document.getElementById('frames-assemble').disabled = !edited;
 }
 
-function deleteFrame(idx) {
-  // Revoke the URL of the deleted frame
-  URL.revokeObjectURL(currentFrames[idx].url);
-  currentFrames.splice(idx, 1);
-  renderFrameStrip(currentFrames, deleteFrame, reorderFrame);
-  document.getElementById('frames-count').textContent = `${currentFrames.length} frames`;
+function deleteFrames(idxs) {
+  if (idxs.length === 0) return;
+  if (idxs.length >= frames.length) {
+    showToast('A GIF needs at least one frame', 'error');
+    return;
+  }
+  const drop = new Set(idxs);
+  for (const i of drop) URL.revokeObjectURL(frames[i].url);
+  frames = frames.filter((_, i) => !drop.has(i));
+  selected = new Set();
+  focus = Math.min(...idxs);
+  edited = true;
+  update(true);
 }
 
-function reorderFrame(fromIdx, toIdx) {
-  const [item] = currentFrames.splice(fromIdx, 1);
-  currentFrames.splice(toIdx, 0, item);
-  renderFrameStrip(currentFrames, deleteFrame, reorderFrame);
+function moveFrame(from, to) {
+  const [item] = frames.splice(from, 1);
+  frames.splice(to, 0, item);
+  selected = new Set([to]);
+  focus = to;
+  edited = true;
+  update(true);
 }
 
 async function reassemble() {
-  if (currentFrames.length === 0) { showToast('No frames to assemble', 'error'); return; }
+  if (frames.length === 0) return;
+  const fps = Math.min(50, Math.max(1, parseInt(document.getElementById('frames-fps').value, 10) || 10));
+  const count = frames.length;
 
-  const fps = parseInt(document.getElementById('frames-fps')?.value) || 10;
-
-  showProcessing('Reassembling GIF…');
-  try {
-    await initFFmpeg();
-
-    // Write each frame
-    for (let i = 0; i < currentFrames.length; i++) {
-      const name = `frame_${String(i + 1).padStart(4, '0')}.png`;
-      const buf = new Uint8Array(await currentFrames[i].blob.arrayBuffer());
-      await writeFile(name, buf);
+  await runJob('Rebuilding your GIF…', async () => {
+    try {
+      for (let i = 0; i < count; i++) {
+        await writeFile(frameName(i), new Uint8Array(await frames[i].blob.arrayBuffer()));
+      }
+      await runFFmpeg(assembleFramesCmd('frame_%04d.png', 'output.gif', fps));
+      const result = await readFile('output.gif');
+      commit(`Frames: ${count} at ${fps} fps`, result);
+      showToast(`Rebuilt with ${count} frames at ${fps} fps`, 'success');
+    } finally {
+      for (let i = 0; i < count; i++) await deleteFile(frameName(i));
+      await deleteFile('output.gif');
     }
-
-    await runFFmpeg([
-      '-framerate', String(fps),
-      '-i', 'frame_%04d.png',
-      '-y', 'output.gif',
-    ]);
-
-    const result = await readFile('output.gif');
-
-    // Cleanup
-    for (let i = 0; i < currentFrames.length; i++) {
-      await deleteFile(`frame_${String(i + 1).padStart(4, '0')}.png`);
-    }
-    await deleteFile('output.gif');
-
-    const newMeta = parseGifInfo(result);
-    setState({ meta: newMeta });
-    pushOperation('frames', { frameCount: currentFrames.length, fps }, result);
-    showToast(`Assembled ${currentFrames.length} frames at ${fps} FPS`, 'success');
-  } catch (err) {
-    showToast(`Assembly failed: ${err.message}`, 'error');
-  } finally {
-    hideProcessing();
-  }
+  });
 }

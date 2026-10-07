@@ -6,21 +6,45 @@ A client-side GIF editor that runs entirely in the browser. No uploads, no serve
 
 ## Features
 
-- **Resize** — scale with aspect ratio lock and quick presets (25%, 50%, 75%, 200%)
-- **Crop** — interactive drag-to-draw, move, and corner-resize crop area with ratio presets (1:1, 4:3, 16:9)
-- **Compress** — reduce colors (8–256) and FPS with two-pass palette optimization
-- **Speed** — adjust playback speed from 0.25× to 4×
-- **Trim** — cut start/end by time
-- **Reverse** — reverse frame order
-- **Frame Editing** — extract frames, delete or drag-to-reorder, reassemble at custom FPS
-- **Filters** — brightness, contrast, saturation, grayscale with presets
-- **Slack Emoji Export** — one-click preset that center-crops to square and iteratively compresses to ≤128 KB
-- **Batch Slack Export** — drop several GIFs at once and download them all Slack-ready in one `.zip`, with original filenames kept
+- **Resize**: scale with an aspect-ratio lock and quick presets (25%, 50%, 75%, 200%, Fit 128)
+- **Crop**: draw, move and resize the crop box with mouse or touch, with ratio presets (1:1, 4:3, 16:9, 9:16) and a rule-of-thirds grid
+- **Trim**: drag handles on a filmstrip timeline that snap to frames, with a live looping preview of your selection
+- **Speed**: 0.25× to 4×, previewed live before you apply it
+- **Reverse**: preview the GIF playing backwards, then apply
+- **Frames**: delete or reorder frames by drag-and-drop, multi-select, or keyboard, then rebuild at a chosen frame rate
+- **Filters**: brightness, contrast, saturation, grayscale and visual presets, with a live preview
+- **Compress**: color count and frame rate, with Light / Balanced / Tiny presets and two-pass palette optimization
+- **Slack Emoji Export**: one click center-crops to a square and iteratively compresses to ≤128 KB
+- **Batch Slack Export**: drop several GIFs and download them all Slack-ready in one `.zip`, with original filenames kept
+
+### Editing experience
+
+- **Frame-accurate player**: play/pause, step and scrub through frames, and zoom from fit up to 800% with crisp pixels on a transparency checkerboard
+- **Compare**: see the original side by side with your edit, plus the size change
+- **Instant undo/redo**: snapshot history with a clickable list of every step
+- **Drop or paste anywhere**: drag GIFs onto the window or paste with ⌘/Ctrl+V at any time
+- **Background engine loading**: FFmpeg warms up as soon as a GIF is loaded, and its progress shows in the header
+- **Light, dark and system themes**, with a responsive layout that works on phones
+
+## Keyboard Shortcuts
+
+| Keys | Action |
+| --- | --- |
+| `1`–`8` | Open a tool |
+| `Esc` | Close the tool |
+| `Space` | Play / pause |
+| `,` / `.` | Previous / next frame |
+| `+` / `-` / `0` | Zoom in / out / toggle fit |
+| `\` | Compare with original |
+| `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` | Undo / redo |
+| `⌘/Ctrl+S` | Download |
+| `?` | Show all shortcuts |
 
 ## Tech Stack
 
 - **Vanilla JS** (ES modules) — no framework
-- **Tailwind CSS v4** — via `@tailwindcss/vite` plugin
+- **Tailwind CSS v4** — via `@tailwindcss/vite` plugin, with semantic theme tokens
+- **Lucide** icons and self-hosted **Nunito** font
 - **FFmpeg.wasm** — WebAssembly build of FFmpeg for all GIF processing
 - **Vite** — dev server and bundler
 
@@ -51,7 +75,8 @@ All processing happens client-side via FFmpeg.wasm:
 1. **Lazy loading** — FFmpeg.wasm (~25 MB) loads on first GIF drop, with a progress bar
 2. **IndexedDB caching** — WASM binary is cached after first download for instant reloads
 3. **Two-pass palette** — compress and Slack export use palettegen → paletteuse for quality
-4. **Operation replay undo** — stores operation history instead of full blobs, replays from original on undo
+4. **Snapshot undo** — each edit's result is kept in a capped history (30 steps / 256 MB), so undo and redo are instant
+5. **WebCodecs playback** — the stage decodes frames with `ImageDecoder` for frame stepping and live previews, falling back to a plain `<img>` where unavailable
 
 ## Deployment
 

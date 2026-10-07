@@ -1,32 +1,32 @@
-/** Lightweight pub/sub state store */
+/** Lightweight pub/sub state store with snapshot-based undo/redo history */
+import { parseGifInfo } from './gif-info.js';
 
-const MAX_UNDO_OPERATIONS = 20;
-const CHECKPOINT_CACHE_SIZE = 3;
+const MAX_HISTORY_ENTRIES = 30;
+const MAX_HISTORY_BYTES = 256 * 1024 * 1024; // 256 MB of GIF snapshots
 
 const initialState = {
-  /** @type {Uint8Array|null} original GIF bytes (never mutated) */
-  originalGif: null,
-  /** @type {Uint8Array|null} current GIF bytes after edits */
+  /** @type {'landing'|'editor'|'batch'} which screen is showing */
+  view: 'landing',
+  /** @type {Uint8Array|null} current GIF bytes (= history.entries[history.index].gif) */
   currentGif: null,
+  /** GIF metadata for currentGif */
+  meta: { width: 0, height: 0, frames: 0, duration: 0, delays: [], size: 0 },
   /** @type {string|null} original filename of the loaded GIF */
   fileName: null,
-  /** @type {string|null} object URL for preview */
-  previewUrl: null,
-  /** GIF metadata */
-  meta: { width: 0, height: 0, frames: 0, duration: 0, size: 0 },
-  /** @type {Array<{tool: string, params: object}>} operation history for undo */
-  operations: [],
-  /** @type {Map<number, Uint8Array>} blob checkpoints keyed by operation index */
-  checkpoints: new Map(),
+  /**
+   * Snapshot history. Entry 0 is always the original upload.
+   * @type {{entries: Array<{label: string, gif: Uint8Array, meta: object}>, index: number}}
+   */
+  history: { entries: [], index: -1 },
   /** @type {string|null} currently active tool */
   activeTool: null,
-  /** whether FFmpeg is currently processing */
+  /** whether an FFmpeg job is running */
   processing: false,
-  /** whether FFmpeg is loaded */
-  ffmpegReady: false,
+  /** FFmpeg engine status, shown as a header pill */
+  engine: { status: 'idle', pct: 0, text: '' },
 };
 
-let state = { ...initialState, checkpoints: new Map() };
+let state = structuredClone(initialState);
 const listeners = new Map();
 
 export function getState() {
@@ -42,10 +42,6 @@ export function setState(partial) {
       for (const cb of cbs) cb(state[key], prev[key]);
     }
   }
-  // wildcard listeners
-  if (listeners.has('*')) {
-    for (const cb of listeners.get('*')) cb(state, prev);
-  }
 }
 
 export function subscribe(key, cb) {
@@ -54,56 +50,68 @@ export function subscribe(key, cb) {
   return () => listeners.get(key).delete(cb);
 }
 
-export function revokePreview() {
-  if (state.previewUrl) {
-    URL.revokeObjectURL(state.previewUrl);
-    setState({ previewUrl: null });
-  }
+// ---- History ----
+
+function showEntry(history) {
+  const entry = history.entries[history.index];
+  setState({ history, currentGif: entry.gif, meta: entry.meta });
 }
 
-export function setPreviewFromGif(gifBytes) {
-  revokePreview();
-  const blob = new Blob([gifBytes], { type: 'image/gif' });
-  setState({ previewUrl: URL.createObjectURL(blob) });
+/** Start a fresh editing session with a newly loaded GIF */
+export function loadGif(gif, fileName) {
+  const meta = parseGifInfo(gif);
+  setState({ fileName });
+  showEntry({ entries: [{ label: 'Original', gif, meta }], index: 0 });
+  return meta;
 }
 
-/** Push an operation to the undo stack */
-export function pushOperation(tool, params, resultGif) {
-  const ops = [...state.operations, { tool, params }];
-  if (ops.length > MAX_UNDO_OPERATIONS) {
-    ops.shift();
-    // shift checkpoints too
-    const newCheckpoints = new Map();
-    for (const [idx, data] of state.checkpoints) {
-      if (idx > 0) newCheckpoints.set(idx - 1, data);
-    }
-    state.checkpoints = newCheckpoints;
+/** Record an edit result as the new current state (drops any redo branch) */
+export function commit(label, gif) {
+  const { history } = state;
+  const entries = history.entries.slice(0, history.index + 1);
+  entries.push({ label, gif, meta: parseGifInfo(gif) });
+
+  // Evict the oldest edits (never the original) to stay within budget
+  let bytes = entries.reduce((sum, e) => sum + e.gif.byteLength, 0);
+  while (entries.length > 2 && (entries.length > MAX_HISTORY_ENTRIES || bytes > MAX_HISTORY_BYTES)) {
+    const [evicted] = entries.splice(1, 1);
+    bytes -= evicted.gif.byteLength;
+    console.log(`[History] Evicted "${evicted.label}" to stay within budget`);
   }
 
-  // Cache checkpoint every few operations for faster undo
-  const checkpoints = new Map(state.checkpoints);
-  if (ops.length % Math.ceil(MAX_UNDO_OPERATIONS / CHECKPOINT_CACHE_SIZE) === 0) {
-    // Keep only CHECKPOINT_CACHE_SIZE most recent
-    if (checkpoints.size >= CHECKPOINT_CACHE_SIZE) {
-      const oldest = Math.min(...checkpoints.keys());
-      checkpoints.delete(oldest);
-    }
-    checkpoints.set(ops.length - 1, resultGif);
-  }
-
-  setState({ operations: ops, currentGif: resultGif, checkpoints });
-  setPreviewFromGif(resultGif);
+  showEntry({ entries, index: entries.length - 1 });
 }
 
-/** Pop the last operation (undo) */
-export function popOperation() {
-  if (state.operations.length === 0) return null;
-  const ops = state.operations.slice(0, -1);
-  setState({ operations: ops });
-  return ops;
+export function canUndo() {
+  return state.history.index > 0;
+}
+
+export function canRedo() {
+  return state.history.index < state.history.entries.length - 1;
+}
+
+/** Jump to a history entry; returns its label, or null if out of range */
+export function jumpTo(index) {
+  const { history } = state;
+  if (index < 0 || index >= history.entries.length || index === history.index) return null;
+  showEntry({ ...history, index });
+  return history.entries[index].label;
+}
+
+export function undo() {
+  const label = state.history.entries[state.history.index]?.label;
+  return canUndo() && jumpTo(state.history.index - 1) !== null ? label : null;
+}
+
+export function redo() {
+  return canRedo() ? jumpTo(state.history.index + 1) : null;
+}
+
+export function getOriginal() {
+  return state.history.entries[0] ?? null;
 }
 
 export function resetState() {
-  revokePreview();
-  state = { ...initialState, checkpoints: new Map() };
+  const { engine } = state;
+  setState({ ...structuredClone(initialState), engine });
 }
