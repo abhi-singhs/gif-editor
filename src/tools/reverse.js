@@ -1,4 +1,4 @@
-import { reverseCmd } from '../ffmpeg/commands.js';
+import { reverseCmds } from '../ffmpeg/commands.js';
 import { registerTool } from '../components/toolbar.js';
 import { applyEdit } from './shared.js';
 import * as player from '../components/player.js';
@@ -40,7 +40,7 @@ function renderReverse(panel) {
     applyEdit({
       label: 'Reverse',
       busy: 'Reversing…',
-      passes: [reverseCmd('input.gif', 'output.gif')],
+      passes: reverseCmds('input.gif', 'output.gif'),
       success: () => 'Reversed! It now plays backwards.',
     });
   });

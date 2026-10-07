@@ -1,5 +1,5 @@
 import { getState } from '../utils/state.js';
-import { trimCmd } from '../ffmpeg/commands.js';
+import { trimCmds } from '../ffmpeg/commands.js';
 import { showToast } from '../components/toast.js';
 import { formatSize } from '../utils/file-utils.js';
 import { registerTool } from '../components/toolbar.js';
@@ -116,7 +116,7 @@ function renderTrim(panel) {
     applyEdit({
       label: `Trim to ${e - s} frames`,
       busy: 'Trimming…',
-      passes: [trimCmd('input.gif', 'output.gif', Number(start.toFixed(4)), Number(duration.toFixed(4)))],
+      passes: trimCmds('input.gif', 'output.gif', Number(start.toFixed(4)), Number(duration.toFixed(4))),
       success: (result) => `Trimmed to ${secs(cum[e] - cum[s])} (${formatSize(result.byteLength)})`,
     });
   });

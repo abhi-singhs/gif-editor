@@ -1,5 +1,5 @@
 import { getState } from '../utils/state.js';
-import { speedCmd } from '../ffmpeg/commands.js';
+import { speedCmds } from '../ffmpeg/commands.js';
 import { showToast } from '../components/toast.js';
 import { registerTool } from '../components/toolbar.js';
 import { applyEdit } from './shared.js';
@@ -59,7 +59,7 @@ function renderSpeed(panel) {
     applyEdit({
       label: `Speed ${fmt(speed)}`,
       busy: 'Changing speed…',
-      passes: [speedCmd('input.gif', 'output.gif', speed)],
+      passes: speedCmds('input.gif', 'output.gif', speed),
       success: () => `Speed set to ${fmt(speed)}`,
     });
   });

@@ -1,6 +1,7 @@
 import { getState, subscribe, commit } from '../utils/state.js';
 import { writeFile, readFile, runFFmpeg, deleteFile } from '../ffmpeg/engine.js';
 import { assembleFramesCmd } from '../ffmpeg/commands.js';
+import { optimizeGif } from '../gifsicle/optimize.js';
 import { showToast } from '../components/toast.js';
 import { registerTool } from '../components/toolbar.js';
 import { runJob } from './shared.js';
@@ -154,7 +155,7 @@ async function reassemble() {
         await writeFile(frameName(i), new Uint8Array(await frames[i].blob.arrayBuffer()));
       }
       await runFFmpeg(assembleFramesCmd('frame_%04d.png', 'output.gif', fps));
-      const result = await readFile('output.gif');
+      const result = await optimizeGif(await readFile('output.gif'));
       commit(`Frames: ${count} at ${fps} fps`, result);
       showToast(`Rebuilt with ${count} frames at ${fps} fps`, 'success');
     } finally {

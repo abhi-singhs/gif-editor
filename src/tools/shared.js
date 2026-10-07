@@ -1,5 +1,6 @@
 import { getState, setState, subscribe, commit } from '../utils/state.js';
 import { writeFile, readFile, runFFmpeg, deleteFile, initFFmpeg, onProgress } from '../ffmpeg/engine.js';
+import { optimizeGif } from '../gifsicle/optimize.js';
 import { showToast } from '../components/toast.js';
 
 let jobText = '';
@@ -63,10 +64,12 @@ export async function runJob(text, fn) {
 }
 
 /**
- * Write `gif` as input.gif, run each FFmpeg pass, and return output.gif's bytes.
+ * Write `gif` as input.gif, run each FFmpeg pass, and return output.gif's bytes
+ * after a gifsicle pass (`optimize` is passed to optimizeGif, e.g. { lossy }).
  * Two-pass commands (palettegen → paletteuse) write palette.png in between.
  */
-export async function transformGif(gif, passes) {
+export async function transformGif(gif, passes, optimize = {}) {
+  let out;
   await writeFile('input.gif', gif);
   try {
     for (let i = 0; i < passes.length; i++) {
@@ -76,23 +79,26 @@ export async function transformGif(gif, passes) {
       ));
       await runFFmpeg(passes[i]);
     }
-    return await readFile('output.gif');
+    out = await readFile('output.gif');
   } finally {
     onProgress(null);
     await deleteFile('input.gif');
     await deleteFile('output.gif');
     await deleteFile('palette.png');
   }
+  setJobProgress(null, 'Optimising…');
+  return optimizeGif(out, optimize);
 }
 
 /**
  * The common tool flow: transform the current GIF, commit it to history, toast.
- * `passes` is an array of FFmpeg arg arrays reading input.gif → output.gif.
+ * `passes` is an array of FFmpeg arg arrays reading input.gif → output.gif;
+ * `optimize` is forwarded to the gifsicle pass.
  */
-export function applyEdit({ label, busy, passes, success }) {
+export function applyEdit({ label, busy, passes, optimize, success }) {
   return runJob(busy, async () => {
     const before = getState().currentGif;
-    const result = await transformGif(before, passes);
+    const result = await transformGif(before, passes, optimize);
     commit(label, result);
     showToast(success ? success(result, before) : `${label} applied`, 'success');
     return result;

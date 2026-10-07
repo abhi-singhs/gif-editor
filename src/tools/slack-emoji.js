@@ -1,5 +1,6 @@
 import { writeFile, readFile, runFFmpeg, deleteFile, initFFmpeg } from '../ffmpeg/engine.js';
 import { slackEmojiCmds } from '../ffmpeg/commands.js';
+import { optimizeGif } from '../gifsicle/optimize.js';
 
 const TARGET_SIZE = 128 * 1024; // 128 KB
 
@@ -33,13 +34,17 @@ export async function slackEmojiExport(gifData) {
 }
 
 async function runTwoPass(gifData, opts) {
+  let result;
   await writeFile('input.gif', gifData);
-  const [pass1, pass2] = slackEmojiCmds('input.gif', 'output.gif', opts);
-  await runFFmpeg(pass1);
-  await runFFmpeg(pass2);
-  const result = await readFile('output.gif');
-  await deleteFile('input.gif');
-  await deleteFile('output.gif');
-  await deleteFile('palette.png');
-  return result;
+  try {
+    const [pass1, pass2] = slackEmojiCmds('input.gif', 'output.gif', opts);
+    await runFFmpeg(pass1);
+    await runFFmpeg(pass2);
+    result = await readFile('output.gif');
+  } finally {
+    await deleteFile('input.gif');
+    await deleteFile('output.gif');
+    await deleteFile('palette.png');
+  }
+  return optimizeGif(result);
 }

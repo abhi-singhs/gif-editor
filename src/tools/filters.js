@@ -1,4 +1,4 @@
-import { filterCmd } from '../ffmpeg/commands.js';
+import { filterCmds } from '../ffmpeg/commands.js';
 import { showToast } from '../components/toast.js';
 import { registerTool } from '../components/toolbar.js';
 import { applyEdit } from './shared.js';
@@ -109,7 +109,7 @@ function renderFilters(panel) {
     applyEdit({
       label: 'Filter',
       busy: 'Applying filter…',
-      passes: [filterCmd('input.gif', 'output.gif', params)],
+      passes: filterCmds('input.gif', 'output.gif', params),
       success: () => 'Filter applied!',
     });
   });

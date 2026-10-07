@@ -1,5 +1,5 @@
 import { getState } from '../utils/state.js';
-import { cropCmd } from '../ffmpeg/commands.js';
+import { cropCmds } from '../ffmpeg/commands.js';
 import { showToast } from '../components/toast.js';
 import { formatSize } from '../utils/file-utils.js';
 import { registerTool } from '../components/toolbar.js';
@@ -87,7 +87,7 @@ function renderCrop(panel) {
     applyEdit({
       label: `Crop to ${w}×${h}`,
       busy: 'Cropping…',
-      passes: [cropCmd('input.gif', 'output.gif', w, h, x, y)],
+      passes: cropCmds('input.gif', 'output.gif', w, h, x, y),
       success: (result) => `Cropped to ${w}×${h} (${formatSize(result.byteLength)})`,
     });
   });
