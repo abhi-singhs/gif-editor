@@ -1,5 +1,5 @@
 import { getState } from '../utils/state.js';
-import { resizeCmd } from '../ffmpeg/commands.js';
+import { resizeCmds } from '../ffmpeg/commands.js';
 import { showToast } from '../components/toast.js';
 import { formatSize } from '../utils/file-utils.js';
 import { registerTool } from '../components/toolbar.js';
@@ -98,7 +98,7 @@ function renderResize(panel) {
     applyEdit({
       label: `Resize to ${w}×${h}`,
       busy: 'Resizing…',
-      passes: [resizeCmd('input.gif', 'output.gif', w, h)],
+      passes: resizeCmds('input.gif', 'output.gif', w, h),
       success: (result) => `Resized to ${w}×${h} (${formatSize(result.byteLength)})`,
     });
   });
