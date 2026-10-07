@@ -1,0 +1,1 @@
+remove time and the user and os in the beginning.
