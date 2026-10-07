@@ -8,6 +8,8 @@ const initialState = {
   originalGif: null,
   /** @type {Uint8Array|null} current GIF bytes after edits */
   currentGif: null,
+  /** @type {string|null} original filename of the loaded GIF */
+  fileName: null,
   /** @type {string|null} object URL for preview */
   previewUrl: null,
   /** GIF metadata */

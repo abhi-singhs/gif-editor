@@ -4,8 +4,8 @@ export function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-export function downloadBlob(data, filename = 'edited.gif') {
-  const blob = new Blob([data], { type: 'image/gif' });
+export function downloadBlob(data, filename = 'edited.gif', type = 'image/gif') {
+  const blob = new Blob([data], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

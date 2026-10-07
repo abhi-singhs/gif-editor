@@ -15,6 +15,7 @@ A client-side GIF editor that runs entirely in the browser. No uploads, no serve
 - **Frame Editing** — extract frames, delete or drag-to-reorder, reassemble at custom FPS
 - **Filters** — brightness, contrast, saturation, grayscale with presets
 - **Slack Emoji Export** — one-click preset that center-crops to square and iteratively compresses to ≤128 KB
+- **Batch Slack Export** — drop several GIFs at once and download them all Slack-ready in one `.zip`, with original filenames kept
 
 ## Tech Stack
 

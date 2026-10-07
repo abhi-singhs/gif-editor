@@ -64,12 +64,37 @@
         <div id="dropzone" class="flex-1 flex items-center justify-center p-8">
           <div class="border-2 border-dashed t-border-dashed rounded-2xl p-12 text-center max-w-lg w-full hover:border-indigo-500/50 transition-colors cursor-pointer">
             <div class="text-5xl mb-4" aria-hidden="true">🎞️</div>
-            <h2 class="text-xl font-semibold mb-2">Drop a GIF here</h2>
-            <p class="t-text-secondary mb-4">or click to browse your files</p>
-            <input id="file-input" type="file" accept="image/gif" class="hidden" aria-label="Select a GIF file" />
+            <h2 class="text-xl font-semibold mb-2">Drop GIFs here</h2>
+            <p class="t-text-secondary mb-1">or click to browse your files</p>
+            <p class="t-text-muted text-sm mb-4">Drop one to edit, or several to batch-export for Slack</p>
+            <input id="file-input" type="file" accept="image/gif" multiple class="hidden" aria-label="Select GIF files" />
             <button id="browse-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white transition-colors">
               Browse Files
             </button>
+          </div>
+        </div>
+
+        <!-- Batch Slack export (shown when multiple GIFs loaded) -->
+        <div id="batch-area" class="hidden flex-1 flex flex-col min-h-0 transition-colors" aria-label="Batch Slack export">
+          <div class="border-b t-border px-4 py-2.5 flex flex-wrap items-center gap-2 shrink-0">
+            <h2 class="text-sm font-semibold">Batch Slack Export</h2>
+            <span id="batch-count" class="text-xs t-text-muted"></span>
+            <input id="batch-file-input" type="file" accept="image/gif" multiple class="hidden" aria-label="Add more GIF files" />
+            <div class="ml-auto flex items-center gap-2">
+              <button id="batch-add-btn" class="px-3 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors">
+                <span aria-hidden="true">＋</span> Add more
+              </button>
+              <button id="batch-clear-btn" class="px-3 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors">
+                <span aria-hidden="true">✕</span> Clear
+              </button>
+              <button id="batch-export-btn" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium text-white transition-colors">
+                💬 Export all for Slack (.zip)
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4">
+            <div id="batch-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"></div>
+            <p class="t-text-muted text-xs mt-4">Each GIF is center-cropped to square and compressed to fit Slack's 128 KB limit. Original filenames are kept in the zip.</p>
           </div>
         </div>
 
