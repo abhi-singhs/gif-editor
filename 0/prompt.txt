@@ -1,0 +1,219 @@
+## Context Usage
+
+**Model:** claude-opus-5-5  
+**Tokens:** 266.1k / 1m (27%)
+
+### Estimated usage by category
+
+| Category | Tokens | Percentage |
+|----------|--------|------------|
+| System prompt | 2.4k | 0.2% |
+| System tools | 20.2k | 2.0% |
+| MCP server instructions | 779 | 0.1% |
+| MCP tools (deferred) | 78.5k | 7.8% |
+| System tools (deferred) | 24.8k | 2.5% |
+| Skills | 5.6k | 0.6% |
+| Messages | 237.1k | 23.7% |
+| Free space | 700.9k | 70.1% |
+| Autocompact buffer | 33k | 3.3% |
+
+### MCP Tools
+
+| Tool | Server | Tokens |
+|------|--------|--------|
+| mcp__claude_ai_Buildkite__authenticate | claude_ai_Buildkite | 179 |
+| mcp__claude_ai_Buildkite__complete_authentication | claude_ai_Buildkite | 241 |
+| mcp__claude_ai_Canva__authenticate | claude_ai_Canva | 174 |
+| mcp__claude_ai_Canva__complete_authentication | claude_ai_Canva | 236 |
+| mcp__claude_ai_Claude_Docs__batch | claude_ai_Claude_Docs | 164 |
+| mcp__claude_ai_Claude_Docs__create | claude_ai_Claude_Docs | 255 |
+| mcp__claude_ai_Claude_Docs__delete | claude_ai_Claude_Docs | 342 |
+| mcp__claude_ai_Claude_Docs__export | claude_ai_Claude_Docs | 323 |
+| mcp__claude_ai_Claude_Docs__guide | claude_ai_Claude_Docs | 208 |
+| mcp__claude_ai_Claude_Docs__query | claude_ai_Claude_Docs | 181 |
+| mcp__claude_ai_Claude_Docs__read | claude_ai_Claude_Docs | 323 |
+| mcp__claude_ai_Claude_Docs__update | claude_ai_Claude_Docs | 297 |
+| mcp__claude_ai_Cloudflare_Developer_Platform__authenticate | claude_ai_Cloudflare_Developer_Platform | 201 |
+| mcp__claude_ai_Cloudflare_Developer_Platform__complete_authentication | claude_ai_Cloudflare_Developer_Platform | 266 |
+| mcp__claude_ai_Datadog__authenticate | claude_ai_Datadog | 178 |
+| mcp__claude_ai_Datadog__complete_authentication | claude_ai_Datadog | 238 |
+| mcp__claude_ai_Descript__authenticate | claude_ai_Descript | 178 |
+| mcp__claude_ai_Descript__complete_authentication | claude_ai_Descript | 240 |
+| mcp__claude_ai_entire-prod-us__authenticate | claude_ai_entire-prod-us | 183 |
+| mcp__claude_ai_entire-prod-us__complete_authentication | claude_ai_entire-prod-us | 246 |
+| mcp__claude_ai_entire-staging-eu__authenticate | claude_ai_entire-staging-eu | 186 |
+| mcp__claude_ai_entire-staging-eu__complete_authentication | claude_ai_entire-staging-eu | 251 |
+| mcp__claude_ai_entire-staging-us__authenticate | claude_ai_entire-staging-us | 186 |
+| mcp__claude_ai_entire-staging-us__complete_authentication | claude_ai_entire-staging-us | 251 |
+| mcp__claude_ai_Excalidraw__authenticate | claude_ai_Excalidraw | 181 |
+| mcp__claude_ai_Excalidraw__complete_authentication | claude_ai_Excalidraw | 241 |
+| mcp__claude_ai_Fastmail__authenticate | claude_ai_Fastmail | 178 |
+| mcp__claude_ai_Fastmail__complete_authentication | claude_ai_Fastmail | 240 |
+| mcp__claude_ai_Figma__authenticate | claude_ai_Figma | 174 |
+| mcp__claude_ai_Figma__complete_authentication | claude_ai_Figma | 236 |
+| mcp__claude_ai_Gmail__apply_sensitive_message_label | claude_ai_Gmail | 489 |
+| mcp__claude_ai_Gmail__apply_sensitive_thread_label | claude_ai_Gmail | 431 |
+| mcp__claude_ai_Gmail__create_draft | claude_ai_Gmail | 1.7k |
+| mcp__claude_ai_Gmail__create_label | claude_ai_Gmail | 2.1k |
+| mcp__claude_ai_Gmail__delete_draft | claude_ai_Gmail | 154 |
+| mcp__claude_ai_Gmail__delete_label | claude_ai_Gmail | 137 |
+| mcp__claude_ai_Gmail__forward | claude_ai_Gmail | 808 |
+| mcp__claude_ai_Gmail__get_draft | claude_ai_Gmail | 804 |
+| mcp__claude_ai_Gmail__get_message | claude_ai_Gmail | 1.3k |
+| mcp__claude_ai_Gmail__get_thread | claude_ai_Gmail | 1.3k |
+| mcp__claude_ai_Gmail__label_message | claude_ai_Gmail | 447 |
+| mcp__claude_ai_Gmail__label_thread | claude_ai_Gmail | 484 |
+| mcp__claude_ai_Gmail__list_drafts | claude_ai_Gmail | 1.2k |
+| mcp__claude_ai_Gmail__list_labels | claude_ai_Gmail | 226 |
+| mcp__claude_ai_Gmail__mark_message_spam | claude_ai_Gmail | 186 |
+| mcp__claude_ai_Gmail__mark_thread_spam | claude_ai_Gmail | 288 |
+| mcp__claude_ai_Gmail__reply | claude_ai_Gmail | 1.1k |
+| mcp__claude_ai_Gmail__search_threads | claude_ai_Gmail | 2.7k |
+| mcp__claude_ai_Gmail__send_message | claude_ai_Gmail | 2k |
+| mcp__claude_ai_Gmail__trash_message | claude_ai_Gmail | 275 |
+| mcp__claude_ai_Gmail__trash_thread | claude_ai_Gmail | 282 |
+| mcp__claude_ai_Gmail__unlabel_message | claude_ai_Gmail | 407 |
+| mcp__claude_ai_Gmail__unlabel_thread | claude_ai_Gmail | 389 |
+| mcp__claude_ai_Gmail__unmark_message_spam | claude_ai_Gmail | 189 |
+| mcp__claude_ai_Gmail__unmark_thread_spam | claude_ai_Gmail | 184 |
+| mcp__claude_ai_Gmail__untrash_message | claude_ai_Gmail | 191 |
+| mcp__claude_ai_Gmail__untrash_thread | claude_ai_Gmail | 184 |
+| mcp__claude_ai_Gmail__update_draft | claude_ai_Gmail | 1.9k |
+| mcp__claude_ai_Gmail__update_label | claude_ai_Gmail | 1.9k |
+| mcp__claude_ai_Gmail__update_message_labels | claude_ai_Gmail | 434 |
+| mcp__claude_ai_Google_Calendar__authenticate | claude_ai_Google_Calendar | 188 |
+| mcp__claude_ai_Google_Calendar__complete_authentication | claude_ai_Google_Calendar | 248 |
+| mcp__claude_ai_Google_Drive__copy_file | claude_ai_Google_Drive | 452 |
+| mcp__claude_ai_Google_Drive__create_file | claude_ai_Google_Drive | 997 |
+| mcp__claude_ai_Google_Drive__download_file_content | claude_ai_Google_Drive | 513 |
+| mcp__claude_ai_Google_Drive__get_file_metadata | claude_ai_Google_Drive | 519 |
+| mcp__claude_ai_Google_Drive__get_file_permissions | claude_ai_Google_Drive | 146 |
+| mcp__claude_ai_Google_Drive__list_recent_files | claude_ai_Google_Drive | 714 |
+| mcp__claude_ai_Google_Drive__read_file_content | claude_ai_Google_Drive | 954 |
+| mcp__claude_ai_Google_Drive__search_files | claude_ai_Google_Drive | 1.2k |
+| mcp__claude_ai_Google_Drive__share_file | claude_ai_Google_Drive | 342 |
+| mcp__claude_ai_Google_Drive__trash_file | claude_ai_Google_Drive | 169 |
+| mcp__claude_ai_Google_Drive__update_file | claude_ai_Google_Drive | 369 |
+| mcp__claude_ai_Granola__authenticate | claude_ai_Granola | 176 |
+| mcp__claude_ai_Granola__complete_authentication | claude_ai_Granola | 238 |
+| mcp__claude_ai_HubSpot__authenticate | claude_ai_HubSpot | 178 |
+| mcp__claude_ai_HubSpot__complete_authentication | claude_ai_HubSpot | 238 |
+| mcp__claude_ai_incident_io__authenticate | claude_ai_incident_io | 181 |
+| mcp__claude_ai_incident_io__complete_authentication | claude_ai_incident_io | 243 |
+| mcp__claude_ai_Linear__create_attachment | claude_ai_Linear | 1.2k |
+| mcp__claude_ai_Linear__create_attachment_from_upload | claude_ai_Linear | 468 |
+| mcp__claude_ai_Linear__create_issue_label | claude_ai_Linear | 310 |
+| mcp__claude_ai_Linear__delete_attachment | claude_ai_Linear | 126 |
+| mcp__claude_ai_Linear__delete_comment | claude_ai_Linear | 201 |
+| mcp__claude_ai_Linear__delete_diff_comment | claude_ai_Linear | 191 |
+| mcp__claude_ai_Linear__delete_status_update | claude_ai_Linear | 183 |
+| mcp__claude_ai_Linear__extract_images | claude_ai_Linear | 251 |
+| mcp__claude_ai_Linear__get_agent_skill | claude_ai_Linear | 147 |
+| mcp__claude_ai_Linear__get_attachment | claude_ai_Linear | 322 |
+| mcp__claude_ai_Linear__get_diff | claude_ai_Linear | 198 |
+| mcp__claude_ai_Linear__get_diff_threads | claude_ai_Linear | 380 |
+| mcp__claude_ai_Linear__get_document | claude_ai_Linear | 132 |
+| mcp__claude_ai_Linear__get_issue | claude_ai_Linear | 727 |
+| mcp__claude_ai_Linear__get_issue_status | claude_ai_Linear | 196 |
+| mcp__claude_ai_Linear__get_milestone | claude_ai_Linear | 188 |
+| mcp__claude_ai_Linear__get_notifications | claude_ai_Linear | 223 |
+| mcp__claude_ai_Linear__get_project | claude_ai_Linear | 474 |
+| mcp__claude_ai_Linear__get_release | claude_ai_Linear | 178 |
+| mcp__claude_ai_Linear__get_release_note | claude_ai_Linear | 186 |
+| mcp__claude_ai_Linear__get_status_updates | claude_ai_Linear | 575 |
+| mcp__claude_ai_Linear__get_team | claude_ai_Linear | 183 |
+| mcp__claude_ai_Linear__get_template | claude_ai_Linear | 278 |
+| mcp__claude_ai_Linear__get_triage_responsibility | claude_ai_Linear | 347 |
+| mcp__claude_ai_Linear__get_user | claude_ai_Linear | 139 |
+| mcp__claude_ai_Linear__get_workspace | claude_ai_Linear | 64 |
+| mcp__claude_ai_Linear__list_agent_skills | claude_ai_Linear | 231 |
+| mcp__claude_ai_Linear__list_comments | claude_ai_Linear | 1k |
+| mcp__claude_ai_Linear__list_custom_views | claude_ai_Linear | 449 |
+| mcp__claude_ai_Linear__list_cycles | claude_ai_Linear | 179 |
+| mcp__claude_ai_Linear__list_diffs | claude_ai_Linear | 536 |
+| mcp__claude_ai_Linear__list_documents | claude_ai_Linear | 667 |
+| mcp__claude_ai_Linear__list_issue_labels | claude_ai_Linear | 439 |
+| mcp__claude_ai_Linear__list_issue_statuses | claude_ai_Linear | 137 |
+| mcp__claude_ai_Linear__list_issues | claude_ai_Linear | 1.4k |
+| mcp__claude_ai_Linear__list_milestones | claude_ai_Linear | 152 |
+| mcp__claude_ai_Linear__list_project_labels | claude_ai_Linear | 528 |
+| mcp__claude_ai_Linear__list_projects | claude_ai_Linear | 1k |
+| mcp__claude_ai_Linear__list_release_notes | claude_ai_Linear | 540 |
+| mcp__claude_ai_Linear__list_release_pipelines | claude_ai_Linear | 560 |
+| mcp__claude_ai_Linear__list_releases | claude_ai_Linear | 638 |
+| mcp__claude_ai_Linear__list_teams | claude_ai_Linear | 483 |
+| mcp__claude_ai_Linear__list_templates | claude_ai_Linear | 260 |
+| mcp__claude_ai_Linear__list_users | claude_ai_Linear | 271 |
+| mcp__claude_ai_Linear__mark_notification | claude_ai_Linear | 369 |
+| mcp__claude_ai_Linear__merge_diff | claude_ai_Linear | 233 |
+| mcp__claude_ai_Linear__prepare_attachment_upload | claude_ai_Linear | 890 |
+| mcp__claude_ai_Linear__resolve_diff_thread | claude_ai_Linear | 204 |
+| mcp__claude_ai_Linear__restore_issue_label | claude_ai_Linear | 196 |
+| mcp__claude_ai_Linear__restore_project_label | claude_ai_Linear | 199 |
+| mcp__claude_ai_Linear__retire_issue_label | claude_ai_Linear | 206 |
+| mcp__claude_ai_Linear__retire_project_label | claude_ai_Linear | 211 |
+| mcp__claude_ai_Linear__save_comment | claude_ai_Linear | 1.1k |
+| mcp__claude_ai_Linear__save_diff_comment | claude_ai_Linear | 687 |
+| mcp__claude_ai_Linear__save_document | claude_ai_Linear | 1.8k |
+| mcp__claude_ai_Linear__save_issue | claude_ai_Linear | 3.5k |
+| mcp__claude_ai_Linear__save_issue_label | claude_ai_Linear | 513 |
+| mcp__claude_ai_Linear__save_milestone | claude_ai_Linear | 339 |
+| mcp__claude_ai_Linear__save_project | claude_ai_Linear | 2.8k |
+| mcp__claude_ai_Linear__save_project_label | claude_ai_Linear | 431 |
+| mcp__claude_ai_Linear__save_release | claude_ai_Linear | 652 |
+| mcp__claude_ai_Linear__save_release_note | claude_ai_Linear | 1.6k |
+| mcp__claude_ai_Linear__save_status_update | claude_ai_Linear | 479 |
+| mcp__claude_ai_Linear__search_documentation | claude_ai_Linear | 171 |
+| mcp__claude_ai_Linear__share_issue | claude_ai_Linear | 258 |
+| mcp__claude_ai_Linear__submit_diff_review | claude_ai_Linear | 344 |
+| mcp__claude_ai_Linear__unshare_issue | claude_ai_Linear | 255 |
+| mcp__claude_ai_Linear__update_diff | claude_ai_Linear | 1.6k |
+| mcp__claude_ai_Plain__authenticate | claude_ai_Plain | 174 |
+| mcp__claude_ai_Plain__complete_authentication | claude_ai_Plain | 236 |
+| mcp__claude_ai_PostHog__authenticate | claude_ai_PostHog | 178 |
+| mcp__claude_ai_PostHog__complete_authentication | claude_ai_PostHog | 238 |
+| mcp__claude_ai_Ramp__authenticate | claude_ai_Ramp | 178 |
+| mcp__claude_ai_Ramp__complete_authentication | claude_ai_Ramp | 235 |
+| mcp__claude_ai_Slack__authenticate | claude_ai_Slack | 174 |
+| mcp__claude_ai_Slack__complete_authentication | claude_ai_Slack | 236 |
+| mcp__claude_ai_Superhuman_Mail__authenticate | claude_ai_Superhuman_Mail | 188 |
+| mcp__claude_ai_Superhuman_Mail__complete_authentication | claude_ai_Superhuman_Mail | 248 |
+| mcp__claude_ai_Vanta__authenticate | claude_ai_Vanta | 174 |
+| mcp__claude_ai_Vanta__complete_authentication | claude_ai_Vanta | 236 |
+| mcp__claude_ai_Zapier__authenticate | claude_ai_Zapier | 176 |
+| mcp__claude_ai_Zapier__complete_authentication | claude_ai_Zapier | 236 |
+
+### Skills
+
+| Skill | Source | Tokens |
+|-------|--------|--------|
+| dataviz | Built-in | ~480 |
+| artifact-design | Built-in | ~70 |
+| artifact-diagramming | Built-in | ~70 |
+| artifact-capabilities | Built-in | ~250 |
+| update-config | Built-in | ~240 |
+| keybindings-help | Built-in | ~80 |
+| code-review | Built-in | ~210 |
+| simplify | Built-in | ~60 |
+| fewer-permission-prompts | Built-in | ~60 |
+| loop | Built-in | ~120 |
+| schedule | Built-in | ~130 |
+| claude-api | Built-in | ~360 |
+| workflow-authoring | Built-in | ~80 |
+| run | Built-in | ~120 |
+| plugin-authoring | Built-in | ~80 |
+| init | Built-in | ~20 |
+| security-review | Built-in | ~30 |
+| built-in-browser | claude.ai sync | ~290 |
+| chrome-browser | claude.ai sync | ~260 |
+| computer-use | claude.ai sync | ~320 |
+| anthropic-skills:deep-research | claude.ai sync | ~200 |
+| docs | claude.ai sync | ~340 |
+| docx | claude.ai sync | ~320 |
+| google-workspace | claude.ai sync | ~330 |
+| import-memory | claude.ai sync | ~60 |
+| morning | claude.ai sync | ~120 |
+| pdf | claude.ai sync | ~150 |
+| pptx | claude.ai sync | ~330 |
+| skill-creator | claude.ai sync | ~120 |
+| xlsx | claude.ai sync | ~320 |
