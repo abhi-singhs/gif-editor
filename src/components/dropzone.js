@@ -1,76 +1,116 @@
-import { getState, setState, setPreviewFromGif } from '../utils/state.js';
-import { parseGifInfo } from '../utils/gif-info.js';
+import { getState, loadGif } from '../utils/state.js';
 import { readFileAsArrayBuffer } from '../utils/file-utils.js';
+import { initFFmpeg } from '../ffmpeg/engine.js';
+import { confirmDialog } from '../ui/dialog.js';
+import { showView } from '../ui/views.js';
 import { showToast } from './toast.js';
-import { filterGifs, openBatch } from './batch.js';
+import { filterGifs, openBatch, addToBatch } from './batch.js';
+import { closeTool } from './toolbar.js';
 
+/** File intake: landing drop target, full-window drag-and-drop, and paste */
 export function initDropzone() {
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('file-input');
-  const browseBtn = document.getElementById('browse-btn');
 
-  browseBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
+  const browse = (multiple) => {
+    fileInput.multiple = multiple;
     fileInput.click();
+  };
+  dropzone.addEventListener('click', () => browse(true));
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      browse(true);
+    }
   });
-
-  dropzone.addEventListener('click', () => fileInput.click());
+  document.getElementById('landing-edit').addEventListener('click', () => browse(false));
+  document.getElementById('landing-batch').addEventListener('click', () => browse(true));
 
   fileInput.addEventListener('change', (e) => {
     handleFiles(e.target.files);
     fileInput.value = '';
   });
 
-  dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropzone.querySelector('div').classList.add('border-indigo-400', 'bg-indigo-950/20');
-  });
+  initWindowDrop();
 
-  dropzone.addEventListener('dragleave', () => {
-    dropzone.querySelector('div').classList.remove('border-indigo-400', 'bg-indigo-950/20');
+  window.addEventListener('paste', (e) => {
+    if (e.target.closest?.('input, textarea')) return;
+    const files = e.clipboardData?.files;
+    if (files?.length) {
+      e.preventDefault();
+      handleFiles(files);
+    }
   });
+}
 
-  dropzone.addEventListener('drop', (e) => {
+/** Dropping files anywhere in the window shows an overlay and loads them */
+function initWindowDrop() {
+  const overlay = document.getElementById('drop-overlay');
+  let depth = 0;
+  const hasFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
+
+  window.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e) || getState().processing) return;
     e.preventDefault();
-    dropzone.querySelector('div').classList.remove('border-indigo-400', 'bg-indigo-950/20');
-    handleFiles(e.dataTransfer.files);
+    if (depth++ === 0) {
+      document.getElementById('drop-overlay-hint').textContent = getState().view === 'batch'
+        ? 'Drop GIFs to add them to the batch'
+        : 'Drop one GIF to edit it, or several for Slack emoji';
+      overlay.classList.remove('hidden');
+    }
+  });
+  window.addEventListener('dragleave', (e) => {
+    if (!hasFiles(e)) return;
+    if (--depth <= 0) {
+      depth = 0;
+      overlay.classList.add('hidden');
+    }
+  });
+  window.addEventListener('dragover', (e) => {
+    if (hasFiles(e)) e.preventDefault();
+  });
+  window.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    depth = 0;
+    overlay.classList.add('hidden');
+    if (!getState().processing) handleFiles(e.dataTransfer.files);
   });
 }
 
 /** One GIF opens the editor; several go to the batch Slack export view */
-function handleFiles(fileList) {
+export async function handleFiles(fileList) {
   const gifs = filterGifs(fileList);
-  if (gifs.length === 1) handleFile(gifs[0]);
-  else if (gifs.length > 1) openBatch(gifs);
-}
+  if (gifs.length === 0) return;
 
-async function handleFile(file) {
-  console.log(`[Dropzone] File received: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} KB)`);
-  if (file.type !== 'image/gif') {
-    console.warn('[Dropzone] Rejected: not a GIF');
-    showToast('Please select a GIF file.', 'error');
+  const { view, history } = getState();
+  if (view === 'batch') {
+    addToBatch(gifs);
     return;
   }
+  if (view === 'editor' && history.entries.length > 1) {
+    const ok = await confirmDialog({
+      title: 'Replace this GIF?',
+      body: `You'll lose your ${history.entries.length - 1} edit(s). Download first if you want to keep them.`,
+      confirmLabel: 'Replace',
+    });
+    if (!ok) return;
+  }
 
+  if (gifs.length === 1) openEditor(gifs[0]);
+  else openBatch(gifs);
+}
+
+async function openEditor(file) {
+  console.log(`[Dropzone] File received: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
   const data = await readFileAsArrayBuffer(file);
-  const meta = parseGifInfo(data);
+  closeTool();
+  showView('editor');
+  const meta = loadGif(data, file.name);
   console.log('[Dropzone] GIF parsed:', meta);
 
-  setState({
-    originalGif: data,
-    currentGif: data,
-    meta,
-    fileName: file.name,
-    operations: [],
-    checkpoints: new Map(),
-  });
+  // Warm the engine up in the background so the first edit is quick
+  initFFmpeg().catch(() => {});
 
-  setPreviewFromGif(data);
-
-  // Show editor UI
-  document.getElementById('dropzone').classList.add('hidden');
-  document.getElementById('preview-area').classList.remove('hidden');
-  document.getElementById('sidebar').classList.remove('hidden');
-
-  showToast(`Loaded: ${meta.width}×${meta.height}, ${meta.frames} frames`, 'success');
+  showToast(`Loaded ${file.name}: ${meta.width}×${meta.height}, ${meta.frames} frames`, 'success');
 }

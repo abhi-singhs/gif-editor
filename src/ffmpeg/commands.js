@@ -81,10 +81,12 @@ export function extractFramesCmd(inputFile, outputPattern) {
   ];
 }
 
+/** Assemble numbered PNG frames into a GIF with an optimized single-pass palette */
 export function assembleFramesCmd(inputPattern, outputFile, fps = 10) {
   return [
     '-framerate', String(fps),
     '-i', inputPattern,
+    '-filter_complex', 'split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5',
     '-y', outputFile,
   ];
 }

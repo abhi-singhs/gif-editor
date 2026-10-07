@@ -4,12 +4,14 @@ import { setState } from '../utils/state.js';
 
 const DB_NAME = 'gif-editor-cache';
 const STORE_NAME = 'ffmpeg';
-const FFMPEG_VERSION = '0.12.10';
 const CORE_VERSION = '0.12.6';
 const BASE_URL = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/esm`;
 
 let ffmpeg = null;
-let loaded = false;
+/** @type {Promise|null} in-flight load, shared by concurrent callers */
+let loadPromise = null;
+/** @type {((ratio: number) => void)|null} */
+let progressListener = null;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -48,22 +50,8 @@ async function setCached(key, value) {
   }
 }
 
-function showLoader() {
-  document.getElementById('ffmpeg-loader')?.classList.remove('hidden');
-}
-
-function hideLoader() {
-  document.getElementById('ffmpeg-loader')?.classList.add('hidden');
-}
-
 function updateProgress(pct, text) {
-  const bar = document.getElementById('ffmpeg-progress-bar');
-  const label = document.getElementById('ffmpeg-progress-text');
-  if (bar) {
-    bar.style.width = `${Math.min(100, pct)}%`;
-    bar.parentElement?.setAttribute('aria-valuenow', String(Math.round(pct)));
-  }
-  if (label) label.textContent = text;
+  setState({ engine: { status: 'loading', pct: Math.min(100, pct), text } });
 }
 
 async function fetchWithProgress(url, cacheKey) {
@@ -87,7 +75,8 @@ async function fetchWithProgress(url, cacheKey) {
     chunks.push(value);
     received += value.length;
     if (contentLength > 0) {
-      const pct = Math.round((received / contentLength) * 100);
+      // Download is the bulk of the work: map it onto 5–90%
+      const pct = 5 + Math.round((received / contentLength) * 85);
       const mb = (received / 1024 / 1024).toFixed(1);
       const totalMb = (contentLength / 1024 / 1024).toFixed(1);
       updateProgress(pct, `Downloading engine… ${mb} / ${totalMb} MB`);
@@ -108,34 +97,46 @@ async function fetchWithProgress(url, cacheKey) {
   return URL.createObjectURL(new Blob([data], { type: 'application/wasm' }));
 }
 
-export async function initFFmpeg() {
-  if (loaded) return ffmpeg;
-
+async function load() {
   console.log('[FFmpeg] Initializing FFmpeg.wasm…');
-  showLoader();
-  updateProgress(0, 'Initializing…');
+  updateProgress(0, 'Warming up…');
 
-  try {
-    ffmpeg = new FFmpeg();
+  const instance = new FFmpeg();
+  instance.on('progress', ({ progress }) => progressListener?.(progress));
 
-    updateProgress(5, 'Loading core…');
+  updateProgress(5, 'Loading core…');
+  const coreURL = await toBlobURL(`${BASE_URL}/ffmpeg-core.js`, 'text/javascript');
+  const wasmURL = await fetchWithProgress(`${BASE_URL}/ffmpeg-core.wasm`, 'ffmpeg-core-wasm');
 
-    const coreURL = await toBlobURL(`${BASE_URL}/ffmpeg-core.js`, 'text/javascript');
-    const wasmURL = await fetchWithProgress(`${BASE_URL}/ffmpeg-core.wasm`, 'ffmpeg-core-wasm');
+  updateProgress(92, 'Starting engine…');
+  await instance.load({ coreURL, wasmURL });
 
-    updateProgress(90, 'Starting engine…');
-
-    await ffmpeg.load({ coreURL, wasmURL });
-
-    loaded = true;
-    setState({ ffmpegReady: true });
-    updateProgress(100, 'Ready!');
-    console.log('[FFmpeg] Engine loaded and ready');
-  } finally {
-    setTimeout(hideLoader, 400);
-  }
-
+  ffmpeg = instance;
+  setState({ engine: { status: 'ready', pct: 100, text: 'Engine ready' } });
+  console.log('[FFmpeg] Engine loaded and ready');
   return ffmpeg;
+}
+
+/**
+ * Load the engine once. Concurrent callers (background preload + a tool click)
+ * share the same promise; a failed load can be retried by calling again.
+ */
+export function initFFmpeg() {
+  if (ffmpeg) return Promise.resolve(ffmpeg);
+  if (!loadPromise) {
+    loadPromise = load().catch((err) => {
+      console.error('[FFmpeg] Load failed:', err);
+      loadPromise = null;
+      setState({ engine: { status: 'error', pct: 0, text: 'Engine failed to load' } });
+      throw err;
+    });
+  }
+  return loadPromise;
+}
+
+/** Receive 0–1 progress for the running exec (null to stop listening) */
+export function onProgress(cb) {
+  progressListener = cb;
 }
 
 export async function runFFmpeg(args) {
@@ -171,5 +172,5 @@ export async function deleteFile(name) {
 }
 
 export function isLoaded() {
-  return loaded;
+  return ffmpeg !== null;
 }

@@ -4,172 +4,273 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GIF Editor</title>
+    <meta name="description" content="Resize, crop, trim, speed up, filter and squeeze GIFs into Slack emoji — right in your browser." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/src/styles/custom.css" />
+    <script>
+      // Apply the theme before first paint to avoid a flash
+      (function () {
+        var pref = 'system';
+        try { pref = localStorage.getItem('gif-editor-theme') || 'system'; } catch (e) {}
+        var dark = pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
     <script src="/coi-serviceworker.min.js"></script>
   </head>
-  <body class="min-h-screen flex flex-col">
-    <!-- Skip to main content link -->
-    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[99999] focus:bg-indigo-600 focus:text-white focus:rounded-lg">Skip to main content</a>
+  <body class="flex flex-col overflow-hidden">
+    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[99999] focus:bg-accent focus:text-on-accent focus:rounded-xl">Skip to main content</a>
 
     <!-- Unsupported browser banner (hidden by default) -->
-    <div id="unsupported-banner" role="alert" class="hidden fixed inset-0 z-[9999] t-bg flex items-center justify-center p-8">
-      <div class="text-center max-w-md">
-        <div class="text-6xl mb-4" aria-hidden="true">🚫</div>
-        <h2 class="text-2xl font-bold mb-3">Browser Not Supported</h2>
-        <p class="t-text-secondary mb-4">
-          This GIF editor requires <strong class="t-text">Chrome</strong>, <strong class="t-text">Edge</strong>,
-          or <strong class="t-text">Firefox</strong> to run. Safari and other browsers are not supported due to
-          WebAssembly threading requirements.
+    <div id="unsupported-banner" role="alert" class="hidden fixed inset-0 z-[9999] bg-canvas flex items-center justify-center p-8">
+      <div class="card text-center max-w-md p-8">
+        <div class="text-6xl mb-4" aria-hidden="true">🙈</div>
+        <h2 class="text-2xl font-extrabold mb-3">Oops, this browser can't run the editor</h2>
+        <p class="text-ink-2 mb-4">
+          The GIF engine needs <strong class="text-ink">Chrome</strong>, <strong class="text-ink">Edge</strong>,
+          or <strong class="text-ink">Firefox</strong>. Safari and other browsers don't support the
+          WebAssembly threading it relies on.
         </p>
-        <p class="t-text-muted text-sm">Please open this page in a supported browser.</p>
+        <p class="text-muted text-sm">Open this page in a supported browser and you're good to go.</p>
       </div>
     </div>
-
-    <!-- FFmpeg loading overlay -->
-    <div id="ffmpeg-loader" class="hidden fixed inset-0 z-50 t-overlay flex items-center justify-center" role="status" aria-live="polite">
-      <div class="text-center w-80">
-        <div class="text-4xl mb-4" aria-hidden="true">⚙️</div>
-        <h2 class="text-lg font-semibold mb-2">Loading GIF Engine</h2>
-        <div class="w-full t-bg-secondary rounded-full h-3 mb-2 overflow-hidden" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="FFmpeg loading progress">
-          <div id="ffmpeg-progress-bar" class="bg-indigo-500 h-3 rounded-full transition-all duration-200" style="width: 0%"></div>
-        </div>
-        <p id="ffmpeg-progress-text" class="t-text-secondary text-sm">Preparing…</p>
-      </div>
-    </div>
-
-    <!-- Toast container -->
-    <div id="toast-container" class="fixed bottom-16 left-4 z-40 flex flex-col gap-2" role="status" aria-live="polite" aria-relevant="additions"></div>
 
     <!-- Header -->
-    <header class="border-b t-border px-4 py-2.5 flex items-center justify-between shrink-0">
-      <h1 class="text-lg font-bold tracking-tight">
-        <span id="title-accent">GIF</span> Editor
-      </h1>
-      <div class="flex items-center gap-2">
-        <a href="https://github.com/abhi-singhs/gif-editor" target="_blank" rel="noopener noreferrer" class="p-1.5 t-bg-hover rounded-lg transition-colors" aria-label="View on GitHub">
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        </a>
-        <button id="theme-toggle" class="p-1.5 t-bg-hover rounded-lg transition-colors" aria-label="Switch to light mode">
-          <span aria-hidden="true">🌙</span>
-        </button>
+    <header class="h-14 px-3 sm:px-4 flex items-center gap-2 shrink-0 border-b border-line bg-surface/80 backdrop-blur z-20">
+      <button id="home-btn" type="button" class="flex items-center gap-2 rounded-xl pr-2 shrink-0" aria-label="GIF Editor — home">
+        <img src="/favicon.svg" alt="" class="w-8 h-8" />
+        <span class="text-lg font-black tracking-tight hidden sm:inline"><span class="brand-gradient">GIF</span> Editor</span>
+      </button>
+
+      <!-- Editor-only: filename -->
+      <div id="file-chip" class="hidden min-w-0 items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-sm font-bold text-ink-2">
+        <i data-icon="images" class="w-4 h-4 text-muted"></i>
+        <span id="file-name" class="truncate max-w-[10rem] sm:max-w-[16rem]"></span>
+      </div>
+
+      <!-- Engine status pill (shown while the FFmpeg engine loads or fails) -->
+      <div id="engine-pill" class="hidden items-center gap-2 px-3 py-1 rounded-full bg-accent-soft text-sm font-bold" role="status" aria-live="polite">
+        <span id="engine-pill-icon" class="flex"></span>
+        <span id="engine-pill-text" class="whitespace-nowrap"></span>
+        <button id="engine-retry" type="button" class="hidden underline underline-offset-2">Retry</button>
+      </div>
+
+      <div class="ml-auto flex items-center gap-1">
+        <!-- Editor-only controls -->
+        <div id="editor-actions" class="hidden items-center gap-1">
+          <button id="undo-btn" type="button" class="btn btn-ghost btn-icon" aria-label="Undo" aria-keyshortcuts="Control+Z Meta+Z" title="Undo (⌘Z)" disabled><i data-icon="undo" class="w-5 h-5"></i></button>
+          <button id="redo-btn" type="button" class="btn btn-ghost btn-icon" aria-label="Redo" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z" title="Redo (⇧⌘Z)" disabled><i data-icon="redo" class="w-5 h-5"></i></button>
+          <span class="w-px h-6 bg-line mx-1" aria-hidden="true"></span>
+          <button id="export-slack" type="button" class="btn btn-slack" title="Square, ≤128 KB"><i data-icon="slack" class="w-4 h-4"></i><span class="hidden md:inline">Slack emoji</span><span class="sr-only md:hidden">Export Slack emoji</span></button>
+          <button id="export-download" type="button" class="btn btn-primary" aria-keyshortcuts="Control+S Meta+S" title="Download (⌘S)"><i data-icon="download" class="w-4 h-4"></i><span class="hidden sm:inline">Download</span><span class="sr-only sm:hidden">Download GIF</span></button>
+          <span class="w-px h-6 bg-line mx-1" aria-hidden="true"></span>
+        </div>
+        <button id="shortcuts-btn" type="button" class="btn btn-ghost btn-icon hidden sm:inline-flex" aria-label="Keyboard shortcuts" aria-keyshortcuts="Shift+?" title="Shortcuts (?)"><i data-icon="keyboard" class="w-5 h-5"></i></button>
+        <button id="theme-toggle" type="button" class="btn btn-ghost btn-icon" aria-label="Theme"></button>
+        <a href="https://github.com/abhi-singhs/gif-editor" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon" aria-label="View on GitHub"><i data-icon="github" class="w-5 h-5"></i></a>
       </div>
     </header>
 
-    <!-- Main content -->
-    <main id="app" class="flex-1 flex flex-col lg:flex-row overflow-hidden">
-      <!-- Left: Dropzone / Preview -->
-      <section id="editor-area" class="flex-1 flex flex-col min-w-0" aria-label="Editor">
-        <!-- Dropzone (shown when no GIF loaded) -->
-        <div id="dropzone" class="flex-1 flex items-center justify-center p-8">
-          <div class="border-2 border-dashed t-border-dashed rounded-2xl p-12 text-center max-w-lg w-full hover:border-indigo-500/50 transition-colors cursor-pointer">
-            <div class="text-5xl mb-4" aria-hidden="true">🎞️</div>
-            <h2 class="text-xl font-semibold mb-2">Drop GIFs here</h2>
-            <p class="t-text-secondary mb-1">or click to browse your files</p>
-            <p class="t-text-muted text-sm mb-4">Drop one to edit, or several to batch-export for Slack</p>
-            <input id="file-input" type="file" accept="image/gif" multiple class="hidden" aria-label="Select GIF files" />
-            <button id="browse-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white transition-colors">
-              Browse Files
-            </button>
-          </div>
-        </div>
-
-        <!-- Batch Slack export (shown when multiple GIFs loaded) -->
-        <div id="batch-area" class="hidden flex-1 flex flex-col min-h-0 transition-colors" aria-label="Batch Slack export">
-          <div class="border-b t-border px-4 py-2.5 flex flex-wrap items-center gap-2 shrink-0">
-            <h2 class="text-sm font-semibold">Batch Slack Export</h2>
-            <span id="batch-count" class="text-xs t-text-muted"></span>
-            <input id="batch-file-input" type="file" accept="image/gif" multiple class="hidden" aria-label="Add more GIF files" />
-            <div class="ml-auto flex items-center gap-2">
-              <button id="batch-add-btn" class="px-3 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors">
-                <span aria-hidden="true">＋</span> Add more
-              </button>
-              <button id="batch-clear-btn" class="px-3 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors">
-                <span aria-hidden="true">✕</span> Clear
-              </button>
-              <button id="batch-export-btn" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium text-white transition-colors">
-                💬 Export all for Slack (.zip)
-              </button>
+    <main id="app" class="flex-1 min-h-0 flex flex-col">
+      <!-- ============ Landing ============ -->
+      <section id="landing" class="flex-1 overflow-y-auto" aria-labelledby="landing-title">
+        <div class="max-w-4xl mx-auto px-4 py-10 sm:py-16 flex flex-col items-center text-center">
+          <div class="relative mb-8 h-28 w-40" aria-hidden="true">
+            <div class="absolute left-2 top-4 w-20 h-20 rounded-3xl bg-[#fde68a] rotate-[-12deg] animate-float" style="animation-delay:-1s"></div>
+            <div class="absolute right-2 top-2 w-20 h-20 rounded-3xl bg-[#f9a8d4] rotate-[10deg] animate-float" style="animation-delay:-2.2s"></div>
+            <div class="absolute left-1/2 -translate-x-1/2 top-0 w-24 h-24 rounded-3xl bg-accent text-on-accent shadow-lg flex items-center justify-center animate-float">
+              <i data-icon="sparkles" class="w-11 h-11"></i>
             </div>
           </div>
-          <div class="flex-1 overflow-y-auto p-4">
-            <div id="batch-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"></div>
-            <p class="t-text-muted text-xs mt-4">Each GIF is center-cropped to square and compressed to fit Slack's 128 KB limit. Original filenames are kept in the zip.</p>
-          </div>
-        </div>
+          <h1 id="landing-title" class="text-4xl sm:text-5xl font-black tracking-tight leading-[1.05] mb-4">
+            Make your GIFs <span class="brand-gradient">just right</span>.
+          </h1>
+          <p class="text-lg text-ink-2 max-w-xl mb-8">
+            Resize, crop, trim, speed up, add filters, or squeeze them into Slack emoji. Everything runs in your browser.
+          </p>
 
-        <!-- Preview (shown when GIF loaded) -->
-        <div id="preview-area" class="hidden flex-1 flex flex-col min-h-0">
-          <!-- GIF display -->
-          <div id="preview-container" class="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
-            <img id="preview-img" class="max-w-full max-h-full object-contain" alt="GIF preview" />
-            <!-- Crop overlay canvas (hidden when not cropping) -->
-            <canvas id="crop-canvas" class="hidden absolute inset-0 w-full h-full cursor-crosshair"></canvas>
+          <!-- Drop target -->
+          <div id="dropzone" role="button" tabindex="0" aria-describedby="dropzone-hint"
+            class="group w-full max-w-2xl rounded-[2rem] border-[3px] border-dashed border-line bg-surface p-8 sm:p-10 cursor-pointer transition-all hover:border-accent hover:bg-accent-soft/40 focus-visible:border-accent">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent-soft text-accent flex items-center justify-center transition-transform group-hover:scale-110 group-hover:-rotate-6">
+              <i data-icon="upload" class="w-8 h-8"></i>
+            </div>
+            <p class="text-xl font-extrabold mb-1">Drop GIFs here</p>
+            <p id="dropzone-hint" class="text-ink-2">
+              or <span class="text-accent font-bold underline underline-offset-4">browse your files</span>
+              <span class="hidden sm:inline">· paste with <kbd class="kbd">⌘</kbd><kbd class="kbd">V</kbd></span>
+            </p>
           </div>
-          <!-- Metadata bar -->
-          <div id="metadata-bar" class="border-t t-border px-4 py-2 flex items-center gap-4 text-xs t-text-secondary shrink-0" aria-label="GIF metadata" role="status">
-            <span id="meta-dimensions" aria-label="Dimensions"></span>
-            <span id="meta-frames" aria-label="Frame count"></span>
-            <span id="meta-duration" aria-label="Duration"></span>
-            <span id="meta-fps" aria-label="Frames per second"></span>
-            <span id="meta-size" aria-label="File size"></span>
-          </div>
-        </div>
+          <input id="file-input" type="file" accept="image/gif" multiple class="hidden" aria-label="Select GIF files" />
 
-        <!-- Frame strip (for frame editing tool) -->
-        <div id="frame-strip" class="hidden border-t t-border p-2">
-          <div id="frame-strip-inner" class="flex gap-1 overflow-x-auto pb-1"></div>
+          <!-- Two equal paths -->
+          <div class="grid sm:grid-cols-2 gap-4 w-full max-w-2xl mt-6 text-left">
+            <button id="landing-edit" type="button" class="card p-5 flex gap-4 items-start text-left transition-transform hover:-translate-y-0.5" data-hue="violet">
+              <span class="hue-chip w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"><i data-icon="imagePlus" class="w-6 h-6"></i></span>
+              <span>
+                <span class="block font-extrabold text-lg">Edit a GIF</span>
+                <span class="block text-sm text-ink-2">Drop one GIF to resize, crop, trim, change speed, edit frames, and add filters.</span>
+              </span>
+            </button>
+            <button id="landing-batch" type="button" class="card p-5 flex gap-4 items-start text-left transition-transform hover:-translate-y-0.5" data-hue="fuchsia">
+              <span class="hue-chip w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"><i data-icon="slack" class="w-6 h-6"></i></span>
+              <span>
+                <span class="block font-extrabold text-lg">Batch Slack emoji</span>
+                <span class="block text-sm text-ink-2">Drop several GIFs and get a .zip of square emoji, each ≤128 KB, keeping their filenames.</span>
+              </span>
+            </button>
+          </div>
+
+          <p class="mt-8 inline-flex items-center gap-2 text-sm text-muted">
+            <i data-icon="shield" class="w-4 h-4 text-ok"></i>
+            Your files never leave your device. No uploads, no servers.
+          </p>
         </div>
       </section>
 
-      <!-- Right: Toolbar + Tool options + Export -->
-      <aside id="sidebar" class="hidden w-full lg:w-80 border-t lg:border-t-0 lg:border-l t-border flex flex-col shrink-0 overflow-y-auto" aria-label="Tools and export">
-        <!-- Actions row -->
-        <div id="actions-row" class="p-2 border-b t-border flex items-center gap-1">
-          <button id="undo-btn" class="hidden flex-1 px-2 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors text-center" aria-label="Undo" aria-keyshortcuts="Control+z">
-            <span aria-hidden="true">↩</span> Undo <span id="undo-count" class="t-text-muted"></span>
-          </button>
-          <button id="revert-btn" class="hidden flex-1 px-2 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors text-center" aria-label="Revert to original">
-            <span aria-hidden="true">⟲</span> Revert
-          </button>
-          <button id="new-gif-btn" class="px-2 py-1.5 text-xs t-bg-secondary t-bg-hover rounded-lg transition-colors ml-auto" aria-label="Remove GIF and start over">
-            <span aria-hidden="true">✕</span> New
-          </button>
+      <!-- ============ Batch Slack export ============ -->
+      <section id="batch-area" class="hidden flex-1 min-h-0 flex flex-col" aria-labelledby="batch-title">
+        <div class="px-4 py-3 border-b border-line bg-surface flex flex-wrap items-center gap-2 shrink-0">
+          <div class="flex items-center gap-3 mr-auto" data-hue="fuchsia">
+            <span class="hue-chip w-9 h-9 rounded-xl flex items-center justify-center"><i data-icon="slack" class="w-5 h-5"></i></span>
+            <div>
+              <h2 id="batch-title" class="font-extrabold leading-tight">Batch Slack emoji</h2>
+              <p id="batch-count" class="text-xs font-bold text-muted"></p>
+            </div>
+          </div>
+          <input id="batch-file-input" type="file" accept="image/gif" multiple class="hidden" aria-label="Add more GIF files" />
+          <button id="batch-add-btn" type="button" class="btn btn-soft btn-sm"><i data-icon="plus" class="w-4 h-4"></i>Add more</button>
+          <button id="batch-clear-btn" type="button" class="btn btn-ghost btn-sm"><i data-icon="trash" class="w-4 h-4"></i>Clear all</button>
+          <button id="batch-export-btn" type="button" class="btn btn-slack"><i data-icon="download" class="w-4 h-4"></i><span id="batch-export-label">Export all (.zip)</span></button>
         </div>
-
-        <!-- Toolbar -->
-        <div id="toolbar" class="p-3 border-b t-border">
-          <h3 class="text-xs font-semibold t-text-muted uppercase tracking-wider mb-2">Tools</h3>
-          <div id="tool-buttons" class="grid grid-cols-4 gap-1"></div>
+        <!-- Overall progress -->
+        <div id="batch-progress" class="hidden h-1.5 bg-surface-2 shrink-0" role="progressbar" aria-label="Batch export progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="batch-progress-bar" class="h-full bg-slack transition-all duration-300" style="width:0%"></div>
         </div>
-
-        <!-- Tool options panel (swaps per selected tool) -->
-        <div id="tool-options" class="flex-1 p-4">
-          <p class="t-text-muted text-sm">Select a tool to begin editing.</p>
+        <div class="flex-1 overflow-y-auto p-4">
+          <div id="batch-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"></div>
+          <p class="text-muted text-sm mt-6 flex items-center gap-2">
+            <i data-icon="info" class="w-4 h-4"></i>
+            Each GIF is center-cropped to a square and compressed to fit under Slack's 128 KB limit. The zip keeps the original filenames.
+          </p>
         </div>
+      </section>
 
-        <!-- Export panel -->
-        <div id="export-panel" class="border-t t-border p-4">
-          <h3 class="text-xs font-semibold t-text-muted uppercase tracking-wider mb-3">Export</h3>
-          <div class="flex flex-col gap-2">
-            <button id="export-download" class="w-full px-4 py-2 t-bg-secondary t-bg-hover rounded-lg text-sm font-medium transition-colors">
-              ⬇ Download GIF
-            </button>
-            <button id="export-slack" class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium text-white transition-colors">
-              💬 Export for Slack Emoji
-            </button>
+      <!-- ============ Editor ============ -->
+      <section id="editor" class="hidden flex-1 min-h-0 flex flex-col lg:flex-row" aria-label="Editor">
+        <!-- Tool rail (left on desktop, bottom bar on mobile) -->
+        <nav id="tool-rail" aria-label="Tools"
+          class="order-3 lg:order-none shrink-0 border-t lg:border-t-0 lg:border-r border-line bg-surface flex lg:flex-col gap-1 p-2 overflow-x-auto lg:overflow-y-auto lg:w-24"></nav>
+
+        <!-- Stage -->
+        <div class="order-1 lg:order-none flex-1 min-w-0 min-h-0 flex flex-col">
+          <div id="stage" class="relative flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-2 p-3">
+            <!-- Compare: original pane (hidden unless comparing) -->
+            <div id="compare-pane" class="hidden relative min-h-0 min-w-0 rounded-2xl overflow-hidden checker border border-line">
+              <span class="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-surface/90 text-xs font-extrabold">Original</span>
+              <div class="w-full h-full flex overflow-auto"><img id="compare-img" alt="Original GIF" class="m-auto pixelated" /></div>
+            </div>
+            <!-- Edited pane -->
+            <div id="viewport" class="relative min-h-0 min-w-0 rounded-2xl overflow-auto checker border border-line flex">
+              <span id="edited-badge" class="hidden absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-accent text-on-accent text-xs font-extrabold">Edited</span>
+              <div id="media-wrap" class="relative m-auto shrink-0">
+                <canvas id="player-canvas" class="hidden block w-full h-full" aria-label="GIF preview" role="img"></canvas>
+                <img id="preview-img" class="hidden block w-full h-full" alt="GIF preview" />
+                <!-- Crop overlay; inset negative so handles at the edges stay grabbable -->
+                <canvas id="crop-canvas" class="hidden absolute -inset-3 touch-none" style="width:calc(100% + 1.5rem);height:calc(100% + 1.5rem)" aria-hidden="true"></canvas>
+              </div>
+            </div>
+
+            <!-- Job overlay (covers only the stage) -->
+            <div id="job-overlay" class="hidden absolute inset-0 z-20 bg-canvas/70 backdrop-blur-[2px] flex items-center justify-center" role="status" aria-live="polite">
+              <div class="card px-6 py-5 w-72 text-center animate-pop-in">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-accent-soft text-accent flex items-center justify-center"><i data-icon="loader" class="w-6 h-6 animate-spin"></i></div>
+                <p id="job-text" class="font-extrabold mb-3">Working…</p>
+                <div class="h-2 rounded-full bg-surface-2 overflow-hidden">
+                  <div id="job-bar" class="h-full rounded-full bg-accent transition-[width] duration-200"></div>
+                </div>
+                <p id="job-sub" class="text-xs text-muted mt-2 min-h-4"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame strip (Frames tool) -->
+          <div id="frame-strip" class="hidden shrink-0 border-t border-line bg-surface px-3 py-2">
+            <div id="frame-strip-inner" class="flex gap-2 overflow-x-auto py-2 px-1" role="listbox" aria-label="Frames" aria-multiselectable="true"></div>
+          </div>
+
+          <!-- Player controls + metadata -->
+          <div class="shrink-0 border-t border-line bg-surface px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div id="player-controls" class="flex items-center gap-1 flex-1 min-w-[16rem]">
+              <button id="pc-prev" type="button" class="btn btn-ghost btn-icon" aria-label="Previous frame" title="Previous frame (,)"><i data-icon="stepBack" class="w-4 h-4"></i></button>
+              <button id="pc-play" type="button" class="btn btn-soft btn-icon" aria-label="Pause" title="Play/Pause (Space)"><i data-icon="pause" class="w-4 h-4"></i></button>
+              <button id="pc-next" type="button" class="btn btn-ghost btn-icon" aria-label="Next frame" title="Next frame (.)"><i data-icon="stepForward" class="w-4 h-4"></i></button>
+              <input id="pc-scrub" type="range" min="0" max="0" value="0" class="flex-1 mx-2" aria-label="Scrub frames" />
+              <span id="pc-frame" class="text-xs font-bold tabular-nums text-muted whitespace-nowrap w-16 text-right"></span>
+            </div>
+            <div class="flex items-center gap-1">
+              <button id="zoom-out" type="button" class="btn btn-ghost btn-icon" aria-label="Zoom out" title="Zoom out (-)"><i data-icon="zoomOut" class="w-4 h-4"></i></button>
+              <button id="zoom-label" type="button" class="btn btn-ghost btn-sm w-16 tabular-nums" title="Toggle fit / 100% (0)">Fit</button>
+              <button id="zoom-in" type="button" class="btn btn-ghost btn-icon" aria-label="Zoom in" title="Zoom in (+)"><i data-icon="zoomIn" class="w-4 h-4"></i></button>
+              <button id="compare-btn" type="button" class="btn btn-ghost btn-sm" aria-pressed="false" title="Compare with original (\)"><i data-icon="compare" class="w-4 h-4"></i><span class="hidden sm:inline">Compare</span></button>
+            </div>
+            <div id="metadata-bar" class="w-full flex flex-wrap items-center gap-1.5 text-xs font-bold" aria-label="GIF details"></div>
           </div>
         </div>
-      </aside>
+
+        <!-- Options panel (right on desktop, bottom sheet on mobile) -->
+        <aside id="panel" aria-label="Tool options"
+          class="order-2 lg:order-none max-lg:hidden max-lg:max-h-[45vh] lg:w-[22rem] shrink-0 border-t lg:border-t-0 lg:border-l border-line bg-surface overflow-y-auto">
+          <div class="relative p-4">
+            <button id="panel-close" type="button" class="hidden absolute top-3 right-3 btn btn-ghost btn-icon" aria-label="Close tool (Esc)" title="Close (Esc)"><i data-icon="x" class="w-4 h-4"></i></button>
+            <div id="tool-options"></div>
+          </div>
+          <details id="history-section" class="border-t border-line max-lg:hidden" open>
+            <summary class="px-4 py-3 flex items-center gap-2 cursor-pointer select-none text-sm font-extrabold text-ink-2">
+              <i data-icon="history" class="w-4 h-4"></i> History <span id="history-count" class="ml-auto text-xs text-muted"></span>
+            </summary>
+            <ol id="history-list" class="px-2 pb-3 space-y-0.5"></ol>
+          </details>
+        </aside>
+      </section>
     </main>
 
-    <!-- Processing overlay -->
-    <div id="processing-overlay" class="hidden fixed inset-0 z-30 t-overlay-light flex items-center justify-center" role="alert" aria-live="assertive">
-      <div class="text-center">
-        <div class="animate-spin text-4xl mb-2" aria-hidden="true">⏳</div>
-        <p id="processing-text" class="t-text-secondary text-sm">Processing…</p>
+    <!-- Full-window drop overlay -->
+    <div id="drop-overlay" class="hidden fixed inset-0 z-[60] bg-accent/15 backdrop-blur-sm p-6 pointer-events-none">
+      <div class="w-full h-full rounded-[2rem] border-4 border-dashed border-accent flex items-center justify-center">
+        <div class="card px-8 py-6 text-center animate-pop-in">
+          <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-accent text-on-accent flex items-center justify-center"><i data-icon="upload" class="w-7 h-7"></i></div>
+          <p class="text-xl font-extrabold">Drop it like it's hot</p>
+          <p id="drop-overlay-hint" class="text-sm text-ink-2">Drop one GIF to edit it, or several for Slack emoji</p>
+        </div>
       </div>
     </div>
+
+    <!-- Toasts -->
+    <div id="toast-container" class="fixed top-[4.25rem] left-1/2 -translate-x-1/2 z-[70] flex flex-col items-center gap-2 w-[min(92vw,26rem)] pointer-events-none" role="status" aria-live="polite" aria-relevant="additions"></div>
+
+    <!-- Shortcuts cheat sheet -->
+    <dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title" class="w-[min(92vw,34rem)] m-auto">
+      <div class="p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="w-10 h-10 rounded-2xl bg-accent-soft text-accent flex items-center justify-center"><i data-icon="keyboard" class="w-5 h-5"></i></span>
+          <h2 id="shortcuts-title" class="text-xl font-extrabold mr-auto">Keyboard shortcuts</h2>
+          <form method="dialog"><button class="btn btn-ghost btn-icon" aria-label="Close"><i data-icon="x" class="w-4 h-4"></i></button></form>
+        </div>
+        <dl id="shortcuts-list" class="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 text-sm"></dl>
+      </div>
+    </dialog>
+
+    <!-- Generic confirm -->
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title" class="w-[min(92vw,26rem)] m-auto">
+      <form method="dialog" class="p-6">
+        <h2 id="confirm-title" class="text-lg font-extrabold mb-1"></h2>
+        <p id="confirm-body" class="text-ink-2 mb-5"></p>
+        <div class="flex justify-end gap-2">
+          <button value="cancel" class="btn btn-ghost">Cancel</button>
+          <button value="ok" id="confirm-ok" class="btn btn-primary"></button>
+        </div>
+      </form>
+    </dialog>
 
     <script type="module" src="/src/main.js"></script>
   </body>

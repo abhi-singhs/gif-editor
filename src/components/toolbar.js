@@ -1,72 +1,100 @@
 import { setState, getState, subscribe } from '../utils/state.js';
+import { icon } from '../ui/icons.js';
+import { renderIdlePanel } from './history.js';
+import * as player from './player.js';
 
-const tools = [
-  { id: 'resize',   icon: '↔',  label: 'Resize' },
-  { id: 'crop',     icon: '⬒',  label: 'Crop' },
-  { id: 'compress', icon: '📦', label: 'Compress' },
-  { id: 'speed',    icon: '⏩', label: 'Speed' },
-  { id: 'trim',     icon: '✂️',  label: 'Trim' },
-  { id: 'reverse',  icon: '🔄', label: 'Reverse' },
-  { id: 'frames',   icon: '🎞', label: 'Frames' },
-  { id: 'filters',  icon: '🎨', label: 'Filters' },
-];
+/**
+ * @typedef {object} Tool
+ * @property {string} id
+ * @property {string} label
+ * @property {string} iconName
+ * @property {string} hue        accent hue name (see [data-hue] in custom.css)
+ * @property {string} hint       one-line description shown in the panel header
+ * @property {(panel: HTMLElement) => void} render  build the options panel
+ * @property {() => void} [exit] tear down live previews / overlays when leaving the tool
+ */
 
-let toolRenderers = {};
+/** @type {Tool[]} */
+const tools = [];
 
-export function registerToolRenderer(toolId, renderer) {
-  toolRenderers[toolId] = renderer;
+/** Tools self-register on import; rail order = registration order, hotkey = position */
+export function registerTool(tool) {
+  tools.push(tool);
+}
+
+export function getTools() {
+  return tools;
 }
 
 export function initToolbar() {
-  const container = document.getElementById('tool-buttons');
+  const rail = document.getElementById('tool-rail');
+  rail.innerHTML = tools.map((tool, i) => `
+    <button type="button" data-tool="${tool.id}" data-hue="${tool.hue}" aria-pressed="false"
+      aria-keyshortcuts="${i + 1}" title="${tool.label} (${i + 1})"
+      class="tool-btn shrink-0 flex flex-col items-center gap-1 px-2 py-2 rounded-2xl text-xs font-bold text-ink-2 hover:bg-surface-2 transition-colors min-w-16 lg:w-full">
+      <span class="hue-chip w-9 h-9 rounded-xl flex items-center justify-center transition-colors">${icon(tool.iconName, 'w-5 h-5')}</span>
+      <span>${tool.label}</span>
+    </button>`).join('');
 
-  for (const tool of tools) {
-    const btn = document.createElement('button');
-    btn.dataset.tool = tool.id;
-    btn.className = 'flex flex-col items-center gap-0.5 p-2 rounded-lg text-xs t-bg-hover transition-colors';
-    btn.innerHTML = `<span class="text-lg" aria-hidden="true">${tool.icon}</span><span>${tool.label}</span>`;
-    btn.setAttribute('aria-pressed', 'false');
-    btn.addEventListener('click', () => selectTool(tool.id));
-    container.appendChild(btn);
-  }
+  rail.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-tool]');
+    if (btn) selectTool(btn.dataset.tool);
+  });
+
+  document.getElementById('panel-close').addEventListener('click', () => selectTool(null));
 
   subscribe('activeTool', updateActiveState);
+  // Edits, undo and redo change the GIF under the tool: rebuild its panel once the
+  // player has the new GIF, so tools know which live previews are available
+  player.on('load', () => {
+    if (getState().view === 'editor') renderPanel();
+  });
+  renderPanel();
 }
 
-function selectTool(toolId) {
+function getTool(id) {
+  return tools.find((t) => t.id === id) ?? null;
+}
+
+/** Select a tool by id (toggles off if already active); null closes the current tool */
+export function selectTool(toolId) {
+  if (getState().processing) return;
   const current = getState().activeTool;
-  const newTool = current === toolId ? null : toolId;
-  setState({ activeTool: newTool });
+  const next = current === toolId ? null : toolId;
+  getTool(current)?.exit?.();
+  setState({ activeTool: next });
+  renderPanel();
+}
 
+/** Leave the active tool (e.g. before loading a new GIF) */
+export function closeTool() {
+  getTool(getState().activeTool)?.exit?.();
+  setState({ activeTool: null });
+}
+
+/** Select by 1-based rail position (keyboard shortcut) */
+export function selectToolByIndex(i) {
+  if (tools[i]) selectTool(tools[i].id);
+}
+
+function renderPanel() {
   const panel = document.getElementById('tool-options');
-  if (newTool && toolRenderers[newTool]) {
+  const tool = getTool(getState().activeTool);
+  if (tool) {
+    tool.exit?.();
     panel.innerHTML = '';
-    toolRenderers[newTool](panel);
+    tool.render(panel);
   } else {
-    panel.innerHTML = '<p class="t-text-muted text-sm">Select a tool to begin editing.</p>';
-  }
-
-  // Hide crop canvas when not cropping
-  const cropCanvas = document.getElementById('crop-canvas');
-  if (cropCanvas) {
-    cropCanvas.classList.toggle('hidden', newTool !== 'crop');
-  }
-
-  // Hide frame strip when not in frames mode
-  const frameStrip = document.getElementById('frame-strip');
-  if (frameStrip) {
-    frameStrip.classList.toggle('hidden', newTool !== 'frames');
+    renderIdlePanel(panel);
   }
 }
 
 function updateActiveState(activeId) {
-  const buttons = document.querySelectorAll('#tool-buttons button');
-  for (const btn of buttons) {
-    const isActive = btn.dataset.tool === activeId;
-    btn.classList.toggle('bg-indigo-600', isActive);
-    btn.classList.toggle('text-white', isActive);
-    btn.classList.toggle('hover:bg-gray-800', false);
-    btn.classList.toggle('t-bg-hover', !isActive);
-    btn.setAttribute('aria-pressed', String(isActive));
+  for (const btn of document.querySelectorAll('#tool-rail [data-tool]')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.tool === activeId));
   }
+  // Mobile: the options panel is a bottom sheet that only opens with a tool
+  const panel = document.getElementById('panel');
+  panel.classList.toggle('max-lg:hidden', !activeId);
+  document.getElementById('panel-close').classList.toggle('hidden', !activeId);
 }
