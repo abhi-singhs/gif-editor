@@ -143,6 +143,14 @@ input[type="number"]::-webkit-outer-spin-button {
 #title-accent { color: #818cf8; }  /* indigo-400 — 5.2:1 on dark bg */
 :root.light #title-accent { color: #4338ca; }  /* indigo-700 — 6.5:1 on white */
 
+/* Batch export status — theme-aware */
+.t-status-ok { color: #4ade80; }     /* green-400 */
+.t-status-warn { color: #fbbf24; }   /* amber-400 */
+.t-status-error { color: #f87171; }  /* red-400 */
+:root.light .t-status-ok { color: #15803d; }     /* green-700 */
+:root.light .t-status-warn { color: #b45309; }   /* amber-700 */
+:root.light .t-status-error { color: #b91c1c; }  /* red-700 */
+
 /* ---- Focus visible (WCAG 2.4.7) ---- */
 :focus-visible {
   outline: 2px solid #6366f1;

@@ -2,6 +2,7 @@ import { getState, setState, setPreviewFromGif } from '../utils/state.js';
 import { parseGifInfo } from '../utils/gif-info.js';
 import { readFileAsArrayBuffer } from '../utils/file-utils.js';
 import { showToast } from './toast.js';
+import { filterGifs, openBatch } from './batch.js';
 
 export function initDropzone() {
   const dropzone = document.getElementById('dropzone');
@@ -16,8 +17,7 @@ export function initDropzone() {
   dropzone.addEventListener('click', () => fileInput.click());
 
   fileInput.addEventListener('change', (e) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    handleFiles(e.target.files);
     fileInput.value = '';
   });
 
@@ -33,9 +33,15 @@ export function initDropzone() {
   dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.querySelector('div').classList.remove('border-indigo-400', 'bg-indigo-950/20');
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
+    handleFiles(e.dataTransfer.files);
   });
+}
+
+/** One GIF opens the editor; several go to the batch Slack export view */
+function handleFiles(fileList) {
+  const gifs = filterGifs(fileList);
+  if (gifs.length === 1) handleFile(gifs[0]);
+  else if (gifs.length > 1) openBatch(gifs);
 }
 
 async function handleFile(file) {
@@ -54,6 +60,7 @@ async function handleFile(file) {
     originalGif: data,
     currentGif: data,
     meta,
+    fileName: file.name,
     operations: [],
     checkpoints: new Map(),
   });

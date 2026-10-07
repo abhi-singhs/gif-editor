@@ -5,6 +5,7 @@ import { initDropzone } from './components/dropzone.js';
 import { initPreview } from './components/preview.js';
 import { initToolbar } from './components/toolbar.js';
 import { initExportPanel } from './components/export-panel.js';
+import { initBatch } from './components/batch.js';
 
 // Tools (self-registering via registerToolRenderer)
 import './tools/resize.js';
@@ -218,6 +219,7 @@ function bootstrap() {
   initPreview();
   initToolbar();
   initExportPanel();
+  initBatch();
   initThemeToggle();
   console.log('[App] All components initialized');
 

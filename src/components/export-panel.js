@@ -18,8 +18,9 @@ function handleDownload() {
 }
 
 async function handleSlackExport() {
-  const { currentGif } = getState();
+  const { currentGif, fileName } = getState();
   if (!currentGif) return;
+  const outName = fileName || 'slack-emoji.gif';
 
   setState({ processing: true });
   document.getElementById('processing-overlay').classList.remove('hidden');
@@ -36,11 +37,11 @@ async function handleSlackExport() {
 
     const size = formatSize(result.byteLength);
     if (result.byteLength <= 128 * 1024) {
-      downloadBlob(result, 'slack-emoji.gif');
+      downloadBlob(result, outName);
       showToast(`Slack emoji ready! ${meta.width}×${meta.height}, ${size}`, 'success');
     } else {
       showToast(`Best achievable: ${size} (target: 128 KB). Downloaded anyway.`, 'error');
-      downloadBlob(result, 'slack-emoji.gif');
+      downloadBlob(result, outName);
     }
   } catch (err) {
     setState({ processing: false });
