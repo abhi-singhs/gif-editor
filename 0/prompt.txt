@@ -1,0 +1,1 @@
+add the ability to add multiple gifs and export them in bulk for slack with their original names retained.
