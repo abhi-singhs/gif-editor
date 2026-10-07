@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4BF51JFW1AZDBC9V028QM0B",
+  "strategy": "manual-commit",
+  "branch": "optimisations",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "package-lock.json",
+    "package.json",
+    "src/ffmpeg/commands.js",
+    "src/tools/compress.js",
+    "src/tools/crop.js",
+    "src/tools/filters.js",
+    "src/tools/frames.js",
+    "src/tools/resize.js",
+    "src/tools/reverse.js",
+    "src/tools/shared.js",
+    "src/tools/slack-emoji.js",
+    "src/tools/speed.js",
+    "src/tools/trim.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 78,
+    "cache_creation_tokens": 81676,
+    "cache_read_tokens": 3223613,
+    "output_tokens": 31132,
+    "api_call_count": 39
+  }
+}

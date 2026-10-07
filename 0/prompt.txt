@@ -1,0 +1,15 @@
+change to a new branch for optimisations
+
+---
+
+plan out an impl for improving the optimizations on the gif that is generated. I noticed a 1.2MB gif became 10 MB when i reversed it which is not feasible and something is definetly broken. so fix that.
+
+---
+
+<task-notification>
+<task-id>bfpr8bors</task-id>
+<tool-use-id>toolu_01WUW5JPobUL1VLu6YPm6MQ6</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-abhi-Documents-gif-editor/5239b25f-4e5a-4ed6-80c0-9ccc5dc71a43/tasks/bfpr8bors.output</output-file>
+<status>failed</status>
+<summary>Background command "Start Vite dev server for browser test" failed with exit code 144</summary>
+</task-notification>
